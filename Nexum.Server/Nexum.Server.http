@@ -8,7 +8,7 @@ POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
 Content-Type: application/json
 
 {
-  "UserId": 101,
+  "UserId": 1,
   "PenaltyPolicyID": 1,
   "ActiveStatus": "Active",
   "OutstandingBalance": 5000.00,
@@ -66,6 +66,21 @@ Content-Type: application/json
   "OutstandingBalance": 500.00,
   "DueDate": "2024-09-10T00:00:00",
   "PaymentAmount": 100.00
+}
+
+###
+
+### CalculatePenalty: UserId is null
+POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+Content-Type: application/json
+
+{
+  "UserId": 1,
+  "PenaltyPolicyID": 3,
+  "ActiveStatus": "Active",
+  "OutstandingBalance": 4000.00,
+  "DueDate": "2024-10-01T00:00:00",
+  "PaymentAmount": 0
 }
 
 ###
