@@ -27,26 +27,29 @@ namespace Nexum.Server.Services
                 throw new ArgumentNullException(nameof(req), "Request cannot be null.");
             }
 
+            // ตรวจสอบยอดเงินต้น
             if (req.PrincipalBalance < 0)
             {
                 throw new ArgumentException("PrincipalBalance cannot be negative.", nameof(req.PrincipalBalance));
             }
 
+            // ตรวจสอบรูปแบบดอกเบี้ย
             if (string.IsNullOrWhiteSpace(req.InterestType))
             {
                 throw new ArgumentException("InterestType is required.", nameof(req.InterestType));
             }
-
             if (req.InterestType != "PerMonth" && req.InterestType != "PerDay")
             {
                 throw new ArgumentException("InterestType is invalid.", nameof(req.InterestType));
             }
 
+            // ตรวจสอบอัตราดอกเบี้ย
             if (req.InterestRate < 0)
             {
                 throw new ArgumentException("InterestRate cannot be negative.", nameof(req.InterestRate));
             }
 
+            // ตรวจสอบอัตราดอกเบี้ยสูงสุด
             if (req.MaxInterestAmount < 0)
             {
                 throw new ArgumentException("MaxInterestAmount cannot be negative.", nameof(req.MaxInterestAmount));
@@ -94,14 +97,15 @@ namespace Nexum.Server.Services
                 interestAmount = Math.Round(req.PrincipalBalance * req.InterestRate / 365, 2);
             }
 
-            // อัตราดอกเบี้ยสูงสุดต่อรอบบิล
-            bool isMaxInterestAmount = false;
-            if (interestAmount > req.MaxInterestAmount)
-            {
-                // ถ้าดอกเบี้ยรอบนี้สูงกว่าอัตราดอกเบี้ยสูงสุดต่อรอบบิล ให้ตั้งค่าเป็นอัตราดอกเบี้ยสูงสุดต่อรอบบิล
-                interestAmount = req.MaxInterestAmount;
-                isMaxInterestAmount = true;
-            }
+            // ไม่มีใน FlowChart อาจไม่ใช้
+            // // อัตราดอกเบี้ยสูงสุดต่อรอบบิล
+            // bool isMaxInterestAmount = false;
+            // if (interestAmount > req.MaxInterestAmount)
+            // {
+            //     // ถ้าดอกเบี้ยรอบนี้สูงกว่าอัตราดอกเบี้ยสูงสุดต่อรอบบิล ให้ตั้งค่าเป็นอัตราดอกเบี้ยสูงสุดต่อรอบบิล
+            //     interestAmount = req.MaxInterestAmount;
+            //     isMaxInterestAmount = true;
+            // }
 
             // รวมยอดดอกเบี้ยสะสม และ สร้างรายการดอกเบี้ย
             decimal accumulatedInterestAmount = accumulatedInterest.AccumInterestRemain + interestAmount; // รวมยอดดอกเบี้ยสะสม
@@ -112,7 +116,8 @@ namespace Nexum.Server.Services
                 ProductContactId = req.ProductContactId,
                 InterestAmount = interestAmount,
                 AccumulatedAmount = accumulatedInterestAmount,
-                Remark = isMaxInterestAmount ? "ดอกเบี้ยรอบนี้สูงกว่าอัตราดอกเบี้ยสูงสุดต่อรอบบิล" : "ดอกเบี้ยรอบนี้",
+                Remark = "ดอกเบี้ยรอบนี้",
+                // Remark = isMaxInterestAmount ? "ดอกเบี้ยรอบนี้สูงกว่าอัตราดอกเบี้ยสูงสุดต่อรอบบิล" : "ดอกเบี้ยรอบนี้",
             };
             _InterestTransactionDAC.CreateInterestTransaction(createInterestTransaction);
 
