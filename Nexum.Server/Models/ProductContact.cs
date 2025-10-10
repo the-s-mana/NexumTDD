@@ -40,6 +40,7 @@ namespace Nexum.Server.Models
         public decimal MaxPenalty { get; set; } // เพดานค่าปรับต่อครั้ง (เช่น 300 บาท)
         public decimal TotalCap { get; set; } // เพดานค่าปรับสะสมสูงสุด (เช่น 1000 บาท)
         public int PenaltyFreePeriodDays { get; set; } // จำนวนวันผ่อนผันหลัง Due Date
+        public decimal MinimumPaymentRate { get; set; } // อัตราชำระขั้นต่ำ (%)
         #endregion
     }
 }
