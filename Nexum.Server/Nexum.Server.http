@@ -3,4 +3,69 @@
 GET {{Nexum.Server_HostAddress}}/weatherforecast/
 Accept: application/json
 
+### CalculatePenalty: Standard Daily Penalty
+POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+Content-Type: application/json
+
+{
+  "UserId": 101,
+  "PenaltyPolicyID": 1,
+  "ActiveStatus": "Active",
+  "OutstandingBalance": 5000.00,
+  "DueDate": "2024-09-30T00:00:00",
+  "PaymentAmount": 0.00
+}
+
+### CalculatePenalty: Fixed Penalty
+POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+Content-Type: application/json
+
+{
+  "UserId": 102,
+  "PenaltyPolicyID": 2,
+  "ActiveStatus": "Active",
+  "OutstandingBalance": 3000.00,
+  "DueDate": "2024-09-25T00:00:00",
+  "PaymentAmount": 500.00
+}
+
+### CalculatePenalty: Percentage Penalty
+POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+Content-Type: application/json
+
+{
+  "UserId": 103,
+  "PenaltyPolicyID": 3,
+  "ActiveStatus": "Active",
+  "OutstandingBalance": 10000.00,
+  "DueDate": "2024-09-20T00:00:00",
+  "PaymentAmount": 1000.00
+}
+
+### CalculatePenalty: Special Daily Penalty
+POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+Content-Type: application/json
+
+{
+  "UserId": 104,
+  "PenaltyPolicyID": 4,
+  "ActiveStatus": "Active",
+  "OutstandingBalance": 8000.00,
+  "DueDate": "2024-09-15T00:00:00",
+  "PaymentAmount": 2000.00
+}
+
+### CalculatePenalty: Not Found Policy
+POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+Content-Type: application/json
+
+{
+  "UserId": 105,
+  "PenaltyPolicyID": 999,
+  "ActiveStatus": "Active",
+  "OutstandingBalance": 500.00,
+  "DueDate": "2024-09-10T00:00:00",
+  "PaymentAmount": 100.00
+}
+
 ###
