@@ -26,12 +26,6 @@ namespace Nexum.Server.Models
         #endregion
 
         #region Penalty
-        //public string? PenaltyType { get; set; } // รูปแบบค่าปรับ
-        //public decimal PenaltyRate { get; set; } // อัตราค่าปรับ
-        //public DateTime PenaltyFreePeriodDays { get; set; } // ระยะปลอดค่าปรับ วันสิ้นสุด
-        //public decimal MinimumPayment { get; set; } // ยอดชำระขั้นต่ำ
-
-
         public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
         public string PolicyName { get; set; } //ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
         public string PenaltyType { get; set; } // ประเภทการคำนวณ ('Daily', 'Fixed', 'Percentage')

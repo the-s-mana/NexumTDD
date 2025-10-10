@@ -13,7 +13,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Register DAC services
-builder.Services.AddScoped<INexumConfigDAC, NexumConfigDAC>();
 builder.Services.AddScoped<ICreditWalletDAC, CreditWalletDAC>();
 builder.Services.AddScoped<IProductContactDAC, ProductContactDAC>();
 builder.Services.AddScoped<IAccumulatedInterestDAC, AccumulatedInterestDAC>();
