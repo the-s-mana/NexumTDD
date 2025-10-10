@@ -1,5 +1,6 @@
 ﻿using Moq;
 using Nexum.Server.DAC;
+using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 using Nexum.Server.Services.Penalty;
 
@@ -7,7 +8,6 @@ namespace Nexum.Tests
 {
     public record Case(
         PenaltyRequest Request,
-        //PenaltyPoliciesResponse Policy,
         PenaltyResponse Expected
     );
     public class PenaltyServiceTests
@@ -25,41 +25,42 @@ namespace Nexum.Tests
 
             return new Penalty(_percentage.Object, _policies.Object, _daily.Object, _fixed.Object);
         }
-
-        private readonly List<PenaltyPoliciesResponse> _policyList = new()
+        #region Policy List
+        private readonly List<ProductContact> _policyList = new()
         {
-           new PenaltyPoliciesResponse
+           new ProductContact
             {
                 PenaltyPolicyID = 1,
                 PenaltyType = "Daily",
                 FixedAmount = 100m,
                 TotalCap = 1000m,
-                GracePeriodDays = 5
+                PenaltyFreePeriodDays = 5
             },
-            new PenaltyPoliciesResponse
+            new ProductContact
             {
                 PenaltyPolicyID = 2,
                 PenaltyType = "Fixed",
                 FixedAmount = 200m,
             },
-            new PenaltyPoliciesResponse
+            new ProductContact
             {
                 PenaltyPolicyID = 3,
                 PenaltyType = "Percentage",
-                Rate = 2.5m,
+                PenaltyRate = 2.5m,
                 MaxPenalty = 300m,
-                GracePeriodDays = 5
+                PenaltyFreePeriodDays = 5
             },
-            new PenaltyPoliciesResponse
+            new ProductContact
             {
                 PenaltyPolicyID = 4,
                 PenaltyType = "Daily",
                 FixedAmount = 200m,
                 MaxPenalty = 400m,
                 TotalCap = 1200m,
-                GracePeriodDays = 2
+                PenaltyFreePeriodDays = 2
             },
         };
+        #endregion
 
         public static IEnumerable<object[]> Cases()
         {
