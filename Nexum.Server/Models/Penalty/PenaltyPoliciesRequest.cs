@@ -1,6 +1,6 @@
-﻿namespace Nexum.Server.Models
+﻿namespace Nexum.Server.Models.Penalty
 {
-    public class CalculatePenaltyResponse
+    public class PenaltyPoliciesRequest
     {
         public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
 

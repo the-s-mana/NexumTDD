@@ -1,6 +1,6 @@
-﻿namespace Nexum.Server.Models
+﻿namespace Nexum.Server.Models.Penalty
 {
-    public class PenaltyTransactions
+    public class PenaltyTransactionsResponse
     {
         public int TransactionID { get; set; } // รหัสรายการ (คีย์หลัก)
         public int AccountID { get; set; } // รหัสบัญชีที่ถูกปรับ

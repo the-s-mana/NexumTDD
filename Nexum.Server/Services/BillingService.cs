@@ -1,5 +1,6 @@
 ﻿using Nexum.Server.Models;
 using Nexum.Server.DAC;
+using Nexum.Server.Services.Penalty;
 
 namespace Nexum.Server.Services
 
@@ -12,38 +13,39 @@ namespace Nexum.Server.Services
     public class BillingService : IBillingService
     {
         private readonly IInterestService _interestService;
-        private readonly IPenaltyService _penaltyService;
-        private readonly INexumConfigDAC _nexumConfigDAC;
+        private readonly ICreditWalletDAC _creditWalletDAC;
+        private readonly IProductContactDAC _productContactDAC;
 
-        public BillingService(IInterestService interestService, IPenaltyService penaltyService, INexumConfigDAC nexumConfigDAC)
+        public BillingService(IInterestService interestService
+        , ICreditWalletDAC creditWalletDAC, IProductContactDAC productContactDAC)
         {
             _interestService = interestService;
-            _penaltyService = penaltyService;
-            _nexumConfigDAC = nexumConfigDAC;
+            _creditWalletDAC = creditWalletDAC;
+            _productContactDAC = productContactDAC;
         }
 
         public BillingResponse ProcessAndCalculateBill(BillingRequest billingRequest)
         {
             // ดึงข้อมูลกระเป๋าสินเชื่อ และ สัญญาสินเชื่อ
-            CreditWallet creditWallet = _nexumConfigDAC.GetCreditWallet(billingRequest.CreditWalletId);
-            ProductContact productContact = _nexumConfigDAC.GetProductContact(billingRequest.CreditWalletId);
+            CreditWallet creditWallet = _creditWalletDAC.GetCreditWallet(billingRequest.CreditWalletId);
+            ProductContact productContact = _productContactDAC.GetProductContact(billingRequest.CreditWalletId);
 
-            // คำนวณค่าปรับ
-            // CalculatePenaltyRequest calculatePenaltyRequest = new CalculatePenaltyRequest() { PenaltyPolicyID = billingRequest.PenaltyPolicyID };
-            // CalculatePenaltyResponse calculatePenaltyResponse = _penaltyService.CalculatePenalty(calculatePenaltyRequest);
-
-
-            // คำนวณดอกเบี้ย
-            CalculateInterestRequest calculateInterestRequest = new CalculateInterestRequest()
+            // เงินต้นคงเหลือมากกว่า 0
+            if (creditWallet.PrincipalBalance > 0)
             {
-                PrincipalBalance = creditWallet.PrincipalBalance,
-                InterestRate = productContact.InterestRate,
-                InterestType = productContact.InterestType,
-                InterestFreePeriodDays = productContact.InterestFreePeriodDays,
-                MaxInterestAmount = productContact.MaxInterestRatePerBilling
-            };
-            CalculateInterestResponse calculateInterestResponse = _interestService.CalculateInterest(calculateInterestRequest);
+                // คำนวณค่าปรับ
 
+                // คำนวณดอกเบี้ย
+                CalculateInterestRequest calculateInterestRequest = new CalculateInterestRequest()
+                {
+                    PrincipalBalance = creditWallet.PrincipalBalance,
+                    InterestRate = productContact.InterestRate,
+                    InterestType = productContact.InterestType,
+                    InterestFreePeriodDays = productContact.InterestFreePeriodDays,
+                    MaxInterestAmount = productContact.MaxInterestRatePerBilling
+                };
+                CalculateInterestResponse calculateInterestResponse = _interestService.CalculateInterest(calculateInterestRequest);
+            }
 
             return new BillingResponse();
         }

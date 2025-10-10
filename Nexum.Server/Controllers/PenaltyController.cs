@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Nexum.Server.Models;
-using Nexum.Server.Services;
+using Nexum.Server.Models.Penalty;
+using Nexum.Server.Services.Penalty;
 
 namespace Nexum.Server.Controllers
 {
@@ -8,20 +9,21 @@ namespace Nexum.Server.Controllers
     [Route("[controller]")]
     public class PenaltyController : ControllerBase
     {
-        public readonly IPercentagePenalty percentagePenalty;
+        public readonly IPenalty  penalty;
+
         //public readonly IDailyPenaltyStrategy dailyPenaltyStrategy;
 
-        public PenaltyController(IPercentagePenalty percentagePenalty)
+        public PenaltyController(IPenalty penalty)
         {
-            this.percentagePenalty = percentagePenalty;
+            this.penalty = penalty;
         }
-        
-        public PenaltyPoliciesResponse xxxx(PenaltyPoliciesRequest penaltyPoliciesRequest)
-        {
-            PenaltyPoliciesResponse x = percentagePenalty.Calculate(penaltyPoliciesRequest);
 
-            return x;
+        [HttpPost("CalculatePenalty")]
+        public PenaltyResponse CalculatePenalty(PenaltyRequest penaltyRequest)
+        {
+            return penalty.GetPenalty(penaltyRequest);
         }
+
 
 
     }
