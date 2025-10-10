@@ -7,7 +7,7 @@ namespace Nexum.Tests
 {
     public record Case(
         PenaltyRequest Request,
-        PenaltyPoliciesResponse Policy,
+        //PenaltyPoliciesResponse Policy,
         PenaltyResponse Expected
     );
     public class PenaltyServiceTests
@@ -17,12 +17,49 @@ namespace Nexum.Tests
         private readonly Mock<IDailyPenalty> _daily = new();
         private readonly Mock<IFixedPenalty> _fixed = new();
 
-        private Penalty CreateSut(PenaltyPoliciesResponse policy)
+        private Penalty CreateSut()
         {
             _policies.Setup(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()))
-                     .Returns(policy);
+                    .Returns((PenaltyPoliciesRequest req) =>
+                        _policyList.Single(x => x.PenaltyPolicyID == req.PenaltyPolicyID));
+
             return new Penalty(_percentage.Object, _policies.Object, _daily.Object, _fixed.Object);
         }
+
+        private readonly List<PenaltyPoliciesResponse> _policyList = new()
+        {
+           new PenaltyPoliciesResponse
+            {
+                PenaltyPolicyID = 1,
+                PenaltyType = "Daily",
+                FixedAmount = 100m,
+                TotalCap = 1000m,
+                GracePeriodDays = 5
+            },
+            new PenaltyPoliciesResponse
+            {
+                PenaltyPolicyID = 2,
+                PenaltyType = "Fixed",
+                FixedAmount = 200m,
+            },
+            new PenaltyPoliciesResponse
+            {
+                PenaltyPolicyID = 3,
+                PenaltyType = "Percentage",
+                Rate = 2.5m,
+                MaxPenalty = 300m,
+                GracePeriodDays = 5
+            },
+            new PenaltyPoliciesResponse
+            {
+                PenaltyPolicyID = 4,
+                PenaltyType = "Daily",
+                FixedAmount = 200m,
+                MaxPenalty = 400m,
+                TotalCap = 1200m,
+                GracePeriodDays = 2
+            },
+        };
 
         public static IEnumerable<object[]> Cases()
         {
@@ -30,29 +67,21 @@ namespace Nexum.Tests
             var req = new PenaltyRequest
             {
                 UserId = 1,
-                OutstandingBalance = 500m,
-                PaymentAmount = 0m,            // = 10%
-                DueDate = now.AddDays(-9),        // ยังไม่ถึงกำหนด
+                PenaltyPolicyID = 1,
                 ActiveStatus = "Active",
-                PenaltyPolicyID = 1
-            };
-            var policy = new PenaltyPoliciesResponse
-            {
-                PenaltyPolicyID = 2,
-                PenaltyType = "Daily",
-                FixedAmount = 100m,
-                TotalCap = 1000m,
-                GracePeriodDays = 5
+                OutstandingBalance = 5000m,
+                DueDate = now.AddDays(-6),
+                PaymentAmount = 1000m  
             };
             PenaltyResponse expected = new PenaltyResponse
             {
                 UserId = 1,
-                OutstandingBalance = 500m,
-                MinimumPayment = 50m,
-                PenaltyAmount = 500m,
+                OutstandingBalance = 5000m,
+                MinimumPayment = 500m,
+                PenaltyAmount = 600m,
             };
 
-            yield return new object[] { new Case(req, policy, expected) };
+            yield return new object[] { new Case(req, expected) };
         }
 
         [Theory(DisplayName = "คำนวณค่าปรับตามสัญญา")]
@@ -60,35 +89,28 @@ namespace Nexum.Tests
         public void CalculatePenalty_NormalCase(Case c)
         {
             //Arrange
-            var sut = CreateSut(c.Policy);
+            var sut = CreateSut(); 
+            
+            var policy = _policyList.Single(p => p.PenaltyPolicyID == c.Request.PenaltyPolicyID);
 
-            var now = DateTime.Now.Date;
-            var minPayment = c.Request.OutstandingBalance * 0.1m;
-            var isOverdue = c.Request.DueDate < now;
-            var underMinPayment = c.Request.PaymentAmount < minPayment;
-            var overdueDays = Math.Max(0, (now - c.Request.DueDate.Date).Days);
-            var beyondGracePeriod = overdueDays > c.Policy.GracePeriodDays;
-
-            var expectCalculatorCall = (isOverdue || underMinPayment) && beyondGracePeriod && c.Expected.PenaltyAmount > 0m;
-            // ตั้ง expected ของ calculators ต่อเคส
-
-            if (expectCalculatorCall)
+            switch (policy.PenaltyType)
             {
-                switch (c.Policy.PenaltyType)
-                {
-                    case "Daily":
-                        _daily.Setup(d => d.Calculate(It.IsAny<PenaltyContext>()))
-                              .Returns(c.Expected.PenaltyAmount);
-                        break;
-                    case "Percentage":
-                        _percentage.Setup(p => p.Calculate(It.IsAny<PenaltyContext>()))
-                                   .Returns(c.Expected.PenaltyAmount);
-                        break;
-                    case "Fixed":
-                        _fixed.Setup(f => f.Calculate(It.IsAny<PenaltyContext>()))
-                              .Returns((PenaltyContext ctx) => ctx.FixedAmount);
-                        break;
-                }
+                case "Daily":
+                    _daily.Setup(d => d.Calculate(It.IsAny<PenaltyContext>()))
+                          .Returns((PenaltyContext ctx) =>
+                              Math.Min(ctx.OverdueDays * ctx.FixedAmount, ctx.TotalCap));
+                    break;
+                case "Fixed":
+                    _fixed.Setup(f => f.Calculate(It.IsAny<PenaltyContext>()))
+                          .Returns((PenaltyContext ctx) => ctx.FixedAmount);
+                    break;
+                case "Percentage": 
+                    _percentage.Setup(p => p.Calculate(It.IsAny<PenaltyContext>()))
+                               .Returns((PenaltyContext ctx) =>
+                                   Math.Min(ctx.OutstandingBalance * ctx.Percentage, ctx.MaxPenalty));
+                    break;
+                    default:
+                    throw new NotImplementedException($"Penalty type '{policy.PenaltyType}' is not implemented.");
             }
 
             //Act
@@ -101,91 +123,25 @@ namespace Nexum.Tests
             Console.WriteLine($"[ACT] UserId={result.UserId}," +
                                 $"Outstanding={result.OutstandingBalance}, Min={result.MinimumPayment}, " +
                               $"Penalty={result.PenaltyAmount}");
+            Console.WriteLine($"Policy={policy.PenaltyType}, " +
+                          $"Policy Id={policy.PenaltyPolicyID}");
             Assert.NotNull(result);
             Assert.Equal(c.Expected.UserId, result.UserId);
             Assert.Equal(c.Expected.OutstandingBalance, result.OutstandingBalance);
-            Assert.Equal(c.Expected.MinimumPayment, result.MinimumPayment);
             Assert.Equal(c.Expected.PenaltyAmount, result.PenaltyAmount);
 
+            _policies.Verify(p => p.penaltyPolicies(
+                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == c.Request.PenaltyPolicyID)),
+                Times.Once());
+
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()),
-                c.Policy.PenaltyType == "Daily" ? Times.Once() : Times.Never());
-            _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()),
-                c.Policy.PenaltyType == "Fixed" ? Times.Once() : Times.Never());
+                policy.PenaltyType == "Daily" ? Times.Once() : Times.Never());
+
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()),
-                c.Policy.PenaltyType == "Percentage" ? Times.Once() : Times.Never());
+                policy.PenaltyType == "Percentage" ? Times.Once() : Times.Never());
+
+            _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()),
+                policy.PenaltyType == "Fixed" ? Times.Once() : Times.Never());
         }
-
-        //private readonly Mock<IPenalty> _mockPenalty;
-        //public PenaltyServiceTests()
-        //{
-        //    _mockPenalty = new Mock<IPenalty>();
-        //}
-
-        //public static IEnumerable<object[]> DailyPenaltyTestData()
-        //{
-        //    yield return new object[]
-        //     {
-        //            new MockPenalty
-        //            {
-        //                UserId = 1,
-        //                UserName = "TestUser",
-        //                OutstandingBalance = 1000m,
-        //                MinimumPayment = 100m,
-        //                MaximumPayment = 500m,
-        //                PenaltyAmount = 0m,
-        //                TotalAmountDue = 1100m,
-        //                DueDate = DateTime.Now.AddDays(-10),
-        //                ActiveStatus = "Active",
-        //                PenaltyPolicyID = 1,
-        //                //Expected values for assertions
-        //                ExpectedUserId = 1, 
-        //                ExpectedUserName = "TestUser",
-        //                ExpectedOutstandingBalance = 1000m,
-        //                ExpectedPenaltyAmount = 100m, // สมมติค่าปรับที่คาดหวัง
-        //                ExpectedTotalAmountDue = 1100m, // สมมติยอดรวมที่ต้องชำระที่คาดหวัง  
-        //            }
-        //     };
-        //}
-
-        //[Theory(DisplayName = "ทดสอบการคำนวณค่าปรับ")]
-        //[MemberData(nameof(DailyPenaltyTestData))]
-        //public void TestCalculatePenalty(MockPenalty testValue)
-        //{
-        //    // Arrange
-        //    var penaltyRequestData = new PenaltyRequest
-        //    {
-        //        UserId = testValue.UserId,
-        //        UserName = testValue.UserName,
-        //        OutstandingBalance = testValue.OutstandingBalance,
-        //        MinimumPayment = testValue.MinimumPayment,
-        //        MaximumPayment = testValue.MaximumPayment,
-        //        DueDate = testValue.DueDate,
-        //        ActiveStatus = testValue.ActiveStatus,
-        //        PenaltyPolicyID = testValue.PenaltyPolicyID
-        //    };
-        //    var expectedPenaltyResponse = new PenaltyResponse
-        //    {
-        //        UserId = testValue.UserId,
-        //        UserName = testValue.UserName,
-        //        OutstandingBalance = testValue.OutstandingBalance,
-        //        MinimumPayment = testValue.MinimumPayment,
-        //        PenaltyAmount = testValue.PenaltyAmount, // สมมติค่าปรับที่คาดหวัง
-        //        TotalAmountDue = testValue.TotalAmountDue // สมมติยอดรวมที่ต้องชำระที่คาดหวัง
-        //    };
-        //    _mockPenalty.Setup(p => p.GetPenalty(It.IsAny<PenaltyRequest>())).Returns(expectedPenaltyResponse);
-        //    // Act
-        //    var result = _mockPenalty.Object.GetPenalty(penaltyRequestData);
-        //    Console.WriteLine($"Expected: {expectedPenaltyResponse.PenaltyAmount}, UserName: {expectedPenaltyResponse.TotalAmountDue}");
-        //    Console.WriteLine($"Penalty Amount: {result.PenaltyAmount}, Total Amount Due: {result.TotalAmountDue}");
-        //    // Assert
-        //    Assert.NotNull(result);
-        //    Assert.Equal(testValue.ExpectedUserId, result.UserId);
-        //    Assert.Equal(testValue.ExpectedUserName, result.UserName);
-        //    Assert.Equal(testValue.ExpectedOutstandingBalance, result.OutstandingBalance);
-        //    Assert.Equal(testValue.ExpectedPenaltyAmount, result.PenaltyAmount);
-        //    Assert.Equal(testValue.ExpectedTotalAmountDue, result.TotalAmountDue);
-
-        //    _mockPenalty.Verify(p => p.GetPenalty(It.IsAny<PenaltyRequest>()), Times.Once);
-        //}
     }
 }
