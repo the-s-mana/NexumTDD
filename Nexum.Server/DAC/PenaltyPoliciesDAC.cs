@@ -1,63 +1,64 @@
-﻿using Nexum.Server.Models.Penalty;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Nexum.Server.Models;
+using Nexum.Server.Models.Penalty;
 
 namespace Nexum.Server.DAC
 {
     public interface IPenaltyPoliciesDAC
     {
-        PenaltyPoliciesResponse GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
+        ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
     }
     public class PenaltyPoliciesDAC : IPenaltyPoliciesDAC
     {
-        public PenaltyPoliciesResponse GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
+        public ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
         {
             // Search for the policy in the mock list by ID
             var policies = GetMockPenaltyPolicies();
             var policy = policies.Find(p => p.PenaltyPolicyID == penaltyPoliciesRequest.PenaltyPolicyID);
 
-            return policy ?? new PenaltyPoliciesResponse
+            return policy ?? new ProductContact
             {
                 PenaltyPolicyID = penaltyPoliciesRequest.PenaltyPolicyID,
                 PolicyName = policy.PolicyName,
                 PenaltyType = policy.PenaltyType,
-                Rate = policy.Rate,
+                PenaltyRate = policy.PenaltyRate,
                 FixedAmount = policy.FixedAmount,
                 MaxPenalty = policy.MaxPenalty,
                 TotalCap = policy.TotalCap,
-                GracePeriodDays = policy.GracePeriodDays
+                PenaltyFreePeriodDays = policy.PenaltyFreePeriodDays
             };
         }
 
-        public static List<PenaltyPoliciesResponse> GetMockPenaltyPolicies()
+        public static List<ProductContact> GetMockPenaltyPolicies()
         {
-            return new List<PenaltyPoliciesResponse>
+            return new List<ProductContact>
             {
-                new PenaltyPoliciesResponse
+                new ProductContact
                 {
                     PenaltyPolicyID = 1,
                     PolicyName = "Standard Daily Penalty",
                     PenaltyType = "Daily",
                     FixedAmount = 100m, // 100 บาท = 100
                     TotalCap = 1000.0m,
-                    GracePeriodDays = 5
+                    PenaltyFreePeriodDays = 5
                 },
-                new PenaltyPoliciesResponse
+                new ProductContact
                 {
                     PenaltyPolicyID = 2,
                     PolicyName = "Fixed Penalty",
                     PenaltyType = "Fixed",
                     FixedAmount = 200.0m,
                 },
-                new PenaltyPoliciesResponse
+                new ProductContact
                 {
                     PenaltyPolicyID = 3,
                     PolicyName = "Percentage Penalty",
                     PenaltyType = "Percentage",
-                    Rate = 2.5m,
+                    PenaltyRate = 2.5m,
                     MaxPenalty = 300.0m,
-                    GracePeriodDays = 5
+                    PenaltyFreePeriodDays = 5
                 },
-                new PenaltyPoliciesResponse
+                new ProductContact
                 {
                     PenaltyPolicyID = 4,
                     PolicyName = "Special Daily Penalty",
@@ -65,7 +66,7 @@ namespace Nexum.Server.DAC
                     FixedAmount = 200.0m,
                     MaxPenalty = 400.0m,
                     TotalCap = 1200.0m,
-                    GracePeriodDays = 2
+                    PenaltyFreePeriodDays = 2
                 }
             };
         }
