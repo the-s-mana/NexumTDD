@@ -29,7 +29,7 @@ namespace Nexum.Server.Services.Penalty
             if (penaltyRequest.OutstandingBalance <= 0)
                 throw new ArgumentException("OutstandingBalance must be greater than zero.");
 
-            if (penaltyRequest.DueDate == null)
+            if (penaltyRequest.DueDate == default(DateTime))
                 throw new ArgumentException("DueDate must be a valid date.");
 
             if (string.IsNullOrEmpty(penaltyRequest.ActiveStatus) || (penaltyRequest.ActiveStatus != "Active" && penaltyRequest.ActiveStatus != "Inactive"))
@@ -68,7 +68,7 @@ namespace Nexum.Server.Services.Penalty
                 {
                     PenaltyContext context = new PenaltyContext
                     {
-                        OutstandingBalance = penaltyRequest.OutstandingBalance,
+                        OutstandingBalance = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount,
                         OverdueDays = OverdueDays,
                         MaxPenalty = PenaltyPolicies.MaxPenalty,
                         TotalCap = PenaltyPolicies.TotalCap,
@@ -87,7 +87,7 @@ namespace Nexum.Server.Services.Penalty
                             penaltyResponse.PenaltyAmount = fixedPenalty.Calculate(context);
                             break;
                         default:
-                            throw new NotSupportedException($"Penalty type '{PenaltyPolicies.PenaltyType}' is not supported.");
+                            throw new NotSupportedException($"Penalty type '{PenaltyPolicies.PenaltyPolicyID}' is not supported.");
                     }
                 }
                 else
