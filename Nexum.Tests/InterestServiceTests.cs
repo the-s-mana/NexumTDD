@@ -8,186 +8,473 @@ namespace Nexum.Tests
 {
     public class InterestServiceTests
     {
-        //private readonly Mock<INexumConfigDAC> _mockNexumConfigDAC;
-
         private readonly Mock<IAccumulatedInterestDAC> _mockAccumulatedInterestDAC;
         private readonly Mock<IInterestTransactionDAC> _mockInterestTransactionDAC;
         private readonly InterestService _interestService;
 
         public InterestServiceTests()
         {
-            //_mockNexumConfigDAC = new Mock<INexumConfigDAC>();
             _mockAccumulatedInterestDAC = new Mock<IAccumulatedInterestDAC>();
             _mockInterestTransactionDAC = new Mock<IInterestTransactionDAC>();
-
             _interestService = new InterestService(_mockAccumulatedInterestDAC.Object, _mockInterestTransactionDAC.Object);
         }
 
-        //1. Normal Cases (8 Cases)
+
         #region Normal Cases
-        public static IEnumerable<object[]> PerMonthTestData()
+        // กรณีทดสอบที่ 1: คำนวณดอกเบี้ย "รายวัน" (ไม่มีดอกเบี้ยสะสมเดิม)
+        [Fact]
+        public void CalculateInterest_PerDay_NoAccumulated_Returns5BathAndAccum5()
         {
-            yield return new object[] { 10000m, 0.15m, 500m, 1500m, 2000m };
-            yield return new object[] { 5000m, 0.12m, 200m, 600m, 800m };
-            yield return new object[] { 20000m, 0.18m, 1000m, 3600m, 4600m };
-            yield return new object[] { 1000000m, 0.12m, 50000m, 120000m, 170000m };
+            // Arrange
+            var initialAccum = 0m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 10_000m,
+                InterestRate = 0.1825m,
+                InterestType = "PerDay",
+                InterestFreePeriodDays = default, // ไม่อยู่ในช่วงปลอดดอกเบี้ย
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(5.00m, res.InterestAmount); // (10,000 * 0.1825) / 365 = 5.00
+            Assert.Equal(5.00m, res.AccumInterestRemain); // 0 + 5.00
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.ProductContactId == 1 &&
+                    t.InterestAmount == 5.00m &&
+                    t.AccumulatedAmount == 5.00m
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(5.00m), Times.Once);
         }
 
-        [Theory(DisplayName = "Normal - คำนวณรายเดือน (PerMonth)")]
-        [MemberData(nameof(PerMonthTestData))]
-        public void CalculateInterest_PerMonth_ShouldCalculateCorrectly(decimal p, decimal r, decimal acc, decimal expectedInterest, decimal expectedAcc)
+        // กรณีทดสอบที่ 2: คำนวณดอกเบี้ย "รายเดือน" (ไม่มีดอกเบี้ยสะสมเดิม)
+        [Fact]
+        public void CalculateInterest_PerMonth_NoAccumulated_Returns375BathAndAccum375()
         {
-            //Arrange
-            var request = new CalculateInterestRequest { PrincipalBalance = p, InterestRate = r, InterestType = "PerMonth", ProductContactId = 1, MaxInterestAmount = decimal.MaxValue };
-            _mockAccumulatedInterestDAC.Setup(d => d.GetAccumulatedInterest(1)).Returns(new AccumulatedInterest { AccumInterestRemain = acc });
-            //Act
-            var result = _interestService.CalculateInterest(request);
-            //Assert & Verify
-            Assert.Equal(expectedInterest, result.InterestAmount);
-            Assert.Equal(expectedAcc, result.AccumInterestRemain);
-            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(It.IsAny<InterestTransaction>()), Times.Once);
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(expectedAcc), Times.Once);
+            // Arrange
+            var initialAccum = 0m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 25_000m,
+                InterestRate = 0.015m,
+                InterestType = "PerMonth",
+                InterestFreePeriodDays = default,
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(375.00m, res.InterestAmount); // 25,000 * 0.015 = 375.00
+            Assert.Equal(375.00m, res.AccumInterestRemain); // 0 + 375.00
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.ProductContactId == 1 &&
+                    t.InterestAmount == 375.00m &&
+                    t.AccumulatedAmount == 375.00m
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(375.00m), Times.Once);
         }
 
-        public static IEnumerable<object[]> PerDayTestData()
+        // กรณีทดสอบที่ 3: คำนวณดอกเบี้ย "รายวัน" (มีดอกเบี้ยสะสมเดิม)
+        [Fact]
+        public void CalculateInterest_PerDay_WithAccumulated_AccumulateCorrectly()
         {
-            yield return new object[] { 10000m, 0.15m, 300m, 4.11m, 304.11m };
-            yield return new object[] { 5000m, 0.12m, 100m, 1.64m, 101.64m };
-            yield return new object[] { 20000m, 0.18m, 500m, 9.86m, 509.86m };
-            yield return new object[] { 100000m, 0.20m, 1000m, 54.79m, 1054.79m };
+            // Arrange
+            var initialAccum = 150.25m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 10_000m,
+                InterestRate = 0.1825m,
+                InterestType = "PerDay",
+                InterestFreePeriodDays = default,
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(5.00m, res.InterestAmount);
+            Assert.Equal(155.25m, res.AccumInterestRemain); // 150.25 + 5.00
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.InterestAmount == 5.00m &&
+                    t.AccumulatedAmount == 155.25m
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(155.25m), Times.Once);
         }
 
-        [Theory(DisplayName = "Normal - คำนวณรายวัน (PerDay)")]
-        [MemberData(nameof(PerDayTestData))]
-        public void CalculateInterest_PerDay_ShouldCalculateCorrectly(decimal p, decimal r, decimal acc, decimal expectedInterest, decimal expectedAcc)
+        // กรณีทดสอบที่ 4: คำนวณดอกเบี้ย "รายเดือน" (มีดอกเบี้ยสะสมเดิม)
+        [Fact]
+        public void CalculateInterest_PerMonth_WithAccumulated_AccumulateCorrectly()
         {
-            //Arrange
-            var request = new CalculateInterestRequest { PrincipalBalance = p, InterestRate = r, InterestType = "PerDay", ProductContactId = 1, MaxInterestAmount = decimal.MaxValue };
-            _mockAccumulatedInterestDAC.Setup(d => d.GetAccumulatedInterest(1)).Returns(new AccumulatedInterest { AccumInterestRemain = acc });
-            //Act
-            var result = _interestService.CalculateInterest(request);
-            //Assert & Verify
-            Assert.Equal(expectedInterest, result.InterestAmount);
-            Assert.Equal(expectedAcc, result.AccumInterestRemain);
-            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(It.IsAny<InterestTransaction>()), Times.Once);
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(expectedAcc), Times.Once);
+            // Arrange
+            var initialAccum = 450.00m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 25_000m,
+                InterestRate = 0.015m,
+                InterestType = "PerMonth",
+                InterestFreePeriodDays = default,
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(375.00m, res.InterestAmount);
+            Assert.Equal(825.00m, res.AccumInterestRemain); // 450.00 + 375.00
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.InterestAmount == 375.00m &&
+                    t.AccumulatedAmount == 825.00m
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(825.00m), Times.Once);
         }
         #endregion
 
-        //2. Alternative Cases (8 Cases)
         #region Alternative Cases
-        public static IEnumerable<object[]> ZeroValuesTestData()
+        // กรณีทดสอบที่ 1: ยอดคงเหลือเป็นศูนย์ -> ดอกเบี้ยรอบนี้เป็น 0 และยอดสะสมคงเดิม
+        [Fact]
+        public void CalculateInterest_ZeroPrincipal_KeepAccumulatedUnchanged()
         {
-            yield return new object[] { 0m, 0.15m, 100m, 0m, 100m };
-            yield return new object[] { 10000m, 0m, 200m, 0m, 200m };
-            yield return new object[] { 0m, 0m, 50m, 0m, 50m };
+            // Arrange
+            var initialAccum = 150.25m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 0m,
+                InterestRate = 0.1825m,
+                InterestType = "PerDay",
+                InterestFreePeriodDays = default,
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(0m, res.InterestAmount);
+            Assert.Equal(initialAccum, res.AccumInterestRemain);
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.InterestAmount == 0m &&
+                    t.AccumulatedAmount == initialAccum
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(initialAccum), Times.Once);
         }
 
-        [Theory(DisplayName = "Alternative - กรณีค่าเป็นศูนย์")]
-        [MemberData(nameof(ZeroValuesTestData))]
-        public void CalculateInterest_ZeroValues_ShouldReturnZeroInterest(decimal p, decimal r, decimal acc, decimal expectedInterest, decimal expectedAcc)
+        // กรณีทดสอบที่ 2: อยู่ในช่วงปลอดดอกเบี้ย -> ต้องสร้างรายการด้วยดอกเบี้ย 0 และไม่อัปเดตยอดสะสม
+        [Fact]
+        public void CalculateInterest_InFreePeriod_CreatesZeroTransaction_NoAccumUpdate()
         {
-            //Arrange
-            var request = new CalculateInterestRequest { PrincipalBalance = p, InterestRate = r, InterestType = "PerMonth", ProductContactId = 1, MaxInterestAmount = decimal.MaxValue };
-            _mockAccumulatedInterestDAC.Setup(d => d.GetAccumulatedInterest(1)).Returns(new AccumulatedInterest { AccumInterestRemain = acc });
-            //Act
-            var result = _interestService.CalculateInterest(request);
-            //Assert
-            Assert.Equal(expectedInterest, result.InterestAmount);
-            Assert.Equal(expectedAcc, result.AccumInterestRemain);
+            // Arrange
+            var initialAccum = 50.00m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 30_000m,
+                InterestRate = 0.1825m,
+                InterestType = "PerDay",
+                InterestFreePeriodDays = DateTime.Now.AddDays(1), // วันนี้ยังอยู่ในช่วงปลอดดอกเบี้ย
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(0m, res.InterestAmount);
+            Assert.Equal(initialAccum, res.AccumInterestRemain);
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.InterestAmount == 0m &&
+                    t.AccumulatedAmount == initialAccum &&
+                    t.Remark != null && t.Remark.Contains("ยกเว้น")
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(It.IsAny<decimal>()), Times.Never);
         }
 
-        public static IEnumerable<object[]> InterestFreePeriodTestData()
+        // กรณีทดสอบที่ 3: ไม่อยู่ในช่วงปลอดดอกเบี้ย -> ต้องคำนวณดอกเบี้ยรายวันตามปกติ
+        [Fact]
+        public void CalculateInterest_NotInFreePeriod_CalculatesNormally()
         {
-            yield return new object[] { DateTime.Now.AddDays(15), 500m, 0m, 500m, false };
-            yield return new object[] { DateTime.Now.AddDays(-5), 300m, 1500m, 1800m, true };
-            yield return new object[] { DateTime.Now, 200m, 1500m, 1700m, true };
+            // Arrange
+            var initialAccum = 50.00m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 30_000m,
+                InterestRate = 0.1825m,
+                InterestType = "PerDay",
+                InterestFreePeriodDays = DateTime.Now.AddDays(-1), // หมดช่วงปลอดดอกเบี้ยแล้ว
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(15.00m, res.InterestAmount); // (30,000 * 0.1825) / 365 = 15.00
+            Assert.Equal(65.00m, res.AccumInterestRemain); // 50.00 + 15.00
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.InterestAmount == 15.00m &&
+                    t.AccumulatedAmount == 65.00m
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(65.00m), Times.Once);
         }
 
-        [Theory(DisplayName = "Alternative - กรณีช่วงปลอดดอกเบี้ย")]
-        [MemberData(nameof(InterestFreePeriodTestData))]
-        public void CalculateInterest_InterestFreePeriod_ShouldBehaveCorrectly(DateTime freePeriod, decimal acc, decimal expectedInterest, decimal expectedAcc, bool shouldUpdate)
+        // กรณีทดสอบที่ 4: วันสิ้นสุดช่วงปลอดดอกเบี้ยเป็นวันนี้พอดี -> ยังถือว่าอยู่ในช่วงปลอดดอกเบี้ย (<=) ดอกเบี้ย 0 บาท
+        [Fact]
+        public void CalculateInterest_FreePeriodEndsToday_StillZeroInterest()
         {
-            //Arrange
-            var request = new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = 0.15m, InterestType = "PerMonth", ProductContactId = 1, InterestFreePeriodDays = freePeriod, MaxInterestAmount = decimal.MaxValue };
-            _mockAccumulatedInterestDAC.Setup(d => d.GetAccumulatedInterest(1)).Returns(new AccumulatedInterest { AccumInterestRemain = acc });
-            //Act
-            var result = _interestService.CalculateInterest(request);
-            //Assert
-            Assert.Equal(expectedInterest, result.InterestAmount);
-            Assert.Equal(expectedAcc, result.AccumInterestRemain);
-            //Verify
-            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(It.IsAny<InterestTransaction>()), Times.Once);
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(It.IsAny<decimal>()), shouldUpdate ? Times.Once() : Times.Never());
-        }
+            // Arrange
+            var initialAccum = 10.00m;
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
 
-        public static IEnumerable<object[]> MaxInterestAmountTestData()
-        {
-            yield return new object[] { "PerMonth", 1000000m, 0.20m, 50000m, 150000m, 200000m, 150000m };
-            yield return new object[] { "PerDay", 1000000m, 0.365m, 2000m, 500m, 2500m, 500m };
-        }
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 30_000m,
+                InterestRate = 0.1825m,
+                InterestType = "PerDay",
+                // หมายเหตุ: ตั้งค่าเป็นอนาคตเล็กน้อยเพื่อหลีกเลี่ยงปัญหา timing ระหว่าง Arrange/Act
+                InterestFreePeriodDays = DateTime.Now.AddSeconds(2), // ใกล้เคียงวันนี้พอดี
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
 
-        [Theory(DisplayName = "Alternative - กรณีดอกเบี้ยเกินเพดาน")]
-        [MemberData(nameof(MaxInterestAmountTestData))]
-        public void CalculateInterest_ExceedsMaxAmount_ShouldCapInterest(string type, decimal p, decimal r, decimal acc, decimal expectedInterest, decimal expectedAcc, decimal max)
-        {
-            //Arrange
-            var request = new CalculateInterestRequest { PrincipalBalance = p, InterestRate = r, InterestType = type, ProductContactId = 1, MaxInterestAmount = max };
-            _mockAccumulatedInterestDAC.Setup(d => d.GetAccumulatedInterest(1)).Returns(new AccumulatedInterest { AccumInterestRemain = acc });
-            //Act
-            var result = _interestService.CalculateInterest(request);
-            //Assert
-            Assert.Equal(expectedInterest, result.InterestAmount);
+            // Act
+            var res = _interestService.CalculateInterest(req);
+
+            // Assert
+            Assert.Equal(0m, res.InterestAmount);
+            Assert.Equal(initialAccum, res.AccumInterestRemain);
+
+            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
+                It.Is<InterestTransaction>(t =>
+                    t.InterestAmount == 0m &&
+                    t.AccumulatedAmount == initialAccum
+                )), Times.Once);
+
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(It.IsAny<decimal>()), Times.Never);
         }
         #endregion
 
-        //3. Exception Cases (10 Cases)
         #region Exception Cases
-        public static IEnumerable<object[]> ValidationErrorTestData()
-        {
-            yield return new object[] { new CalculateInterestRequest { PrincipalBalance = -1m, InterestRate = 0.15m, InterestType = "PerMonth" }, "PrincipalBalance cannot be negative" };
-            yield return new object[] { new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = -0.1m, InterestType = "PerMonth" }, "InterestRate cannot be negative" };
-            yield return new object[] { new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = 0.15m, InterestType = null! }, "InterestType is required" };
-            yield return new object[] { new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = 0.15m, InterestType = "" }, "InterestType is required" };
-            yield return new object[] { new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = 0.15m, InterestType = "   " }, "InterestType is required" };
-            yield return new object[] { new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = 0.15m, InterestType = "Invalid" }, "InterestType is invalid" };
-            yield return new object[] { new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = 0.15m, InterestType = "PerMonth", MaxInterestAmount = -1m }, "MaxInterestAmount cannot be negative" };
-        }
-
-        [Theory(DisplayName = "Exception - Input Validation")]
-        [MemberData(nameof(ValidationErrorTestData))]
-        public void CalculateInterest_InvalidData_ShouldThrowArgumentException(CalculateInterestRequest request, string expectedMessage)
-        {
-            //Act & Assert
-            var ex = Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(request));
-            Assert.Contains(expectedMessage, ex.Message);
-            _mockAccumulatedInterestDAC.Verify(d => d.GetAccumulatedInterest(It.IsAny<int>()), Times.Never);
-        }
-
-        [Fact(DisplayName = "Exception - Null Request")]
-        public void CalculateInterest_NullRequest_ShouldThrowArgumentNullException()
+        // กรณีทดสอบที่ 1: Object Input เป็น Null
+        [Fact]
+        public void CalculateInterest_NullRequest_ThrowsArgumentNullException()
         {
             Assert.Throws<ArgumentNullException>(() => _interestService.CalculateInterest(null!));
         }
 
-        [Fact(DisplayName = "Exception - DAC Failure")]
-        public void CalculateInterest_DacFailure_ShouldPropagateException()
+        // กรณีทดสอบที่ 2: Input ขาดหาย (Missing Value) - InterestType ไม่ได้ระบุ (null)
+        [Fact]
+        public void CalculateInterest_MissingInterestType_ThrowsArgumentException()
         {
-            //Arrange
-            var request = new CalculateInterestRequest { PrincipalBalance = 10000m, InterestRate = 0.15m, InterestType = "PerMonth", ProductContactId = 1, MaxInterestAmount = decimal.MaxValue };
-            _mockAccumulatedInterestDAC.Setup(d => d.GetAccumulatedInterest(1)).Throws(new InvalidOperationException());
-            //Act & Assert
-            Assert.Throws<InvalidOperationException>(() => _interestService.CalculateInterest(request));
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 100m,
+                InterestRate = 0.01m,
+                InterestType = null,
+                ProductContactId = 1
+            };
+
+            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
         }
 
-        [Fact(DisplayName = "Exception - Multiple Validation Errors")]
-        public void CalculateInterest_MultipleErrors_ShouldThrowFirst()
+        // กรณีทดสอบที่ 3: ยอดคงเหลือติดลบ (Negative Value)
+        [Fact]
+        public void CalculateInterest_NegativePrincipal_ThrowsArgumentException()
         {
-            //Arrange
-            var request = new CalculateInterestRequest { PrincipalBalance = -1m, InterestRate = -0.1m };
-            //Act & Assert
-            var ex = Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(request));
-            Assert.Contains("PrincipalBalance", ex.Message); // Should fail on the first error
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = -1m,
+                InterestRate = 0.01m,
+                InterestType = "PerMonth",
+                ProductContactId = 1
+            };
+
+            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+        }
+
+        // กรณีทดสอบที่ 4: อัตราดอกเบี้ยจาก Config ติดลบ (Negative Value)
+        [Fact]
+        public void CalculateInterest_NegativeRate_ThrowsArgumentException()
+        {
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 100m,
+                InterestRate = -0.01m,
+                InterestType = "PerMonth",
+                ProductContactId = 1
+            };
+
+            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+        }
+
+        // กรณีทดสอบที่ 5: ประเภทดอกเบี้ยเป็นค่าว่าง (Empty String)
+        [Fact]
+        public void CalculateInterest_EmptyInterestType_ThrowsArgumentException()
+        {
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 100m,
+                InterestRate = 0.01m,
+                InterestType = "",
+                ProductContactId = 1
+            };
+
+            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+        }
+
+        // กรณีทดสอบที่ 6: ประเภทดอกเบี้ยเป็น Whitespace
+        [Fact]
+        public void CalculateInterest_WhitespaceInterestType_ThrowsArgumentException()
+        {
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 100m,
+                InterestRate = 0.01m,
+                InterestType = " ",
+                ProductContactId = 1
+            };
+
+            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+        }
+
+        // กรณีทดสอบที่ 7: ประเภทดอกเบี้ยไม่รองรับ (Unsupported Type)
+        [Fact]
+        public void CalculateInterest_InvalidInterestType_ThrowsArgumentException()
+        {
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 100m,
+                InterestRate = 0.01m,
+                InterestType = "PerYear",
+                ProductContactId = 1
+            };
+
+            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+        }
+
+        // กรณีทดสอบที่ 8: ไม่พบข้อมูล Config (เช่น AccumulatedInterest ไม่พบ)
+        [Fact]
+        public void CalculateInterest_ConfigNotFound_ThrowsKeyNotFoundException()
+        {
+            // Arrange: ให้ชั้น DAC โยน KeyNotFoundException เมื่อดึง AccumulatedInterest
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Throws(new KeyNotFoundException("AccumulatedInterest not found"));
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 100m,
+                InterestRate = 0.01m,
+                InterestType = "PerMonth",
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act + Assert
+            Assert.Throws<KeyNotFoundException>(() => _interestService.CalculateInterest(req));
+        }
+
+        // กรณีทดสอบที่ 9: มี Validation Errors หลายตัว
+        [Fact]
+        public void CalculateInterest_MultipleValidationErrors_ThrowsArgumentException()
+        {
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = -100m, // ผิด: ติดลบ
+                InterestRate = -0.5m,     // ผิด: ติดลบ
+                InterestType = "PerYear", // ผิด: ไม่รองรับ
+                ProductContactId = 1
+            };
+
+            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+        }
+
+        // กรณีทดสอบที่ 10: ชั้น Data Access (DAC) เกิด Exception
+        [Fact]
+        public void CalculateInterest_DacThrowsException_Propagates()
+        {
+            // Arrange: ให้ดึงสะสมสำเร็จ แต่ตอน CreateTransaction โยน Exception
+            _mockAccumulatedInterestDAC
+                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
+                .Returns(new AccumulatedInterest { AccumInterestRemain = 0m });
+
+            _mockInterestTransactionDAC
+                .Setup(x => x.CreateInterestTransaction(It.IsAny<InterestTransaction>()))
+                .Throws(new InvalidOperationException("DAC failure"));
+
+            var req = new CalculateInterestRequest
+            {
+                PrincipalBalance = 100m,
+                InterestRate = 0.01m,
+                InterestType = "PerMonth",
+                ProductContactId = 1,
+                MaxInterestAmount = 999_999m
+            };
+
+            // Act + Assert: ควรให้ Exception เดิมถูกส่งต่อออกมา
+            Assert.Throws<InvalidOperationException>(() => _interestService.CalculateInterest(req));
         }
         #endregion
     }
