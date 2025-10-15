@@ -3,6 +3,7 @@ using Moq;
 using Nexum.Server.DAC;
 using Nexum.Server.Models;
 using Nexum.Server.Services;
+using Nexum.Server.Utils;
 using Xunit;
 
 namespace Nexum.Tests
@@ -11,6 +12,7 @@ namespace Nexum.Tests
     {
         private readonly Mock<IAccumulatedInterestDAC> _mockAccumulatedInterestDAC;
         private readonly Mock<IInterestTransactionDAC> _mockInterestTransactionDAC;
+        private readonly Mock<IDateTimeUtils> _mockDateTimeUtils;
         private readonly InterestService _interestService;
 
         public InterestServiceTests()
@@ -18,7 +20,10 @@ namespace Nexum.Tests
             Console.OutputEncoding = Encoding.UTF8; // ให้ Console.WriteLine แสดงภาษาไทยถูกต้อง
             _mockAccumulatedInterestDAC = new Mock<IAccumulatedInterestDAC>();
             _mockInterestTransactionDAC = new Mock<IInterestTransactionDAC>();
-            _interestService = new InterestService(_mockAccumulatedInterestDAC.Object, _mockInterestTransactionDAC.Object);
+            _mockDateTimeUtils = new Mock<IDateTimeUtils>();
+            // Default: ให้คืนวันที่ 2025-10-15 (วันที่รันเทสต์นี้)
+            _mockDateTimeUtils.Setup(x => x.GetCurrentDateTime()).Returns(new DateTime(2025, 10, 15));
+            _interestService = new InterestService(_mockAccumulatedInterestDAC.Object, _mockInterestTransactionDAC.Object, _mockDateTimeUtils.Object);
         }
 
 
@@ -136,7 +141,7 @@ namespace Nexum.Tests
                 PrincipalBalance = 30_000m,
                 InterestRate = 0.1825m,
                 InterestType = "PerDay",
-                InterestFreePeriodDays = DateTime.Now.AddDays(1), // วันนี้ยังอยู่ในช่วงปลอดดอกเบี้ย
+                InterestFreePeriodDays = new DateTime(2025, 10, 16), // วันนี้ยังอยู่ในช่วงปลอดดอกเบี้ย
                 ProductContactId = 1,
                 MaxInterestAmount = 999_999m
             };
@@ -176,7 +181,7 @@ namespace Nexum.Tests
                 PrincipalBalance = 30_000m,
                 InterestRate = 0.1825m,
                 InterestType = "PerDay",
-                InterestFreePeriodDays = DateTime.Now.AddDays(-1), // หมดช่วงปลอดดอกเบี้ยแล้ว
+                InterestFreePeriodDays = new DateTime(2025, 10, 14), // หมดช่วงปลอดดอกเบี้ยแล้ว
                 ProductContactId = 1,
                 MaxInterestAmount = 999_999m
             };
@@ -215,8 +220,8 @@ namespace Nexum.Tests
                 PrincipalBalance = 30_000m,
                 InterestRate = 0.1825m,
                 InterestType = "PerDay",
-                // หมายเหตุ: ตั้งค่าเป็นอนาคตเล็กน้อยเพื่อหลีกเลี่ยงปัญหา timing ระหว่าง Arrange/Act
-                InterestFreePeriodDays = DateTime.Now.AddSeconds(2), // ใกล้เคียงวันนี้พอดี
+                // ใช้วันที่เดียวกับวันที่ mock
+                InterestFreePeriodDays = new DateTime(2025, 10, 15), // วันนี้พอดี
                 ProductContactId = 1,
                 MaxInterestAmount = 999_999m
             };

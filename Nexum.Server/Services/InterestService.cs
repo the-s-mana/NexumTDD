@@ -1,5 +1,6 @@
 ﻿using Nexum.Server.Models;
 using Nexum.Server.DAC;
+using Nexum.Server.Utils;
 
 namespace Nexum.Server.Services
 
@@ -13,11 +14,13 @@ namespace Nexum.Server.Services
     {
         private readonly IAccumulatedInterestDAC _accumulatedInterestDAC;
         private readonly IInterestTransactionDAC _InterestTransactionDAC;
+        private readonly IDateTimeUtils _dateTimeUtils;
 
-        public InterestService(IAccumulatedInterestDAC accumulatedInterestDAC, IInterestTransactionDAC InterestTransactionDAC)
+        public InterestService(IAccumulatedInterestDAC accumulatedInterestDAC, IInterestTransactionDAC InterestTransactionDAC, IDateTimeUtils dateTimeUtils)
         {
             _accumulatedInterestDAC = accumulatedInterestDAC;
             _InterestTransactionDAC = InterestTransactionDAC;
+            _dateTimeUtils = dateTimeUtils;
         }
         public CalculateInterestResponse CalculateInterest(CalculateInterestRequest req)
         {
@@ -67,7 +70,7 @@ namespace Nexum.Server.Services
             if (req.InterestFreePeriodDays != default(DateTime))
             {
                 // ถ้าวันปัจจุบัน <= วันสิ้นสุดระยะปลอดดอกเบี้ย
-                if (DateTime.Now <= req.InterestFreePeriodDays)
+                if (_dateTimeUtils.GetCurrentDateTime() <= req.InterestFreePeriodDays)
                 {
                     // สร้างรายการดอกเบี้ย หมายเหตุ ยกเว้นการคำนวณ
                     InterestTransaction InterestTransaction = new InterestTransaction
