@@ -17,12 +17,12 @@ namespace Nexum.Tests
         private readonly Mock<IDailyPenalty> mockDailyPenalty;
         private readonly Mock<IFixedPenalty> mockFixedPenalty;
 
-        public PenaltyTdd()
+        public PenaltyTdd(Mock<IPenaltyPolicies> mockPenaltyPolicies, Mock<IPercentagePenalty> mockPercentagePenalty, Mock<IDailyPenalty> mockDailyPenalty, Mock<IFixedPenalty> mockFixedPenalty)
         {
-            mockPenaltyPolicies = new Mock<IPenaltyPolicies>();
-            mockPercentagePenalty = new Mock<IPercentagePenalty>();
-            mockDailyPenalty = new Mock<IDailyPenalty>();
-            mockFixedPenalty = new Mock<IFixedPenalty>();
+            this.mockPenaltyPolicies = mockPenaltyPolicies;
+            this.mockPercentagePenalty = mockPercentagePenalty;
+            this.mockDailyPenalty = mockDailyPenalty;
+            this.mockFixedPenalty = mockFixedPenalty;
         }
 
         #region Policy List
