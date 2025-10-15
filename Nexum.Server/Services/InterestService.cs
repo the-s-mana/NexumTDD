@@ -27,10 +27,15 @@ namespace Nexum.Server.Services
                 throw new ArgumentNullException(nameof(req), "Request cannot be null.");
             }
 
-            // ตรวจสอบยอดเงินต้น
-            if (req.PrincipalBalance < 0)
+            if (req.InterestType == null || req.InterestType == default(string))
             {
-                throw new ArgumentException("PrincipalBalance cannot be negative.", nameof(req.PrincipalBalance));
+                throw new ArgumentException("InterestType is required.", nameof(req.InterestType));
+            }
+
+            // ตรวจสอบยอดเงินต้น
+            if (req.PrincipalBalance <= 0)
+            {
+                throw new ArgumentException("PrincipalBalance cannot be negative or zero.", nameof(req.PrincipalBalance));
             }
 
             // ตรวจสอบรูปแบบดอกเบี้ย
@@ -84,6 +89,7 @@ namespace Nexum.Server.Services
             }
 
             decimal interestAmount = 0;
+            decimal accumulatedInterestAmount = accumulatedInterest.AccumInterestRemain;
 
             // คำนวณดอกเบี้ย
             if (req.InterestType == "PerMonth")
@@ -108,26 +114,30 @@ namespace Nexum.Server.Services
             // }
 
             // รวมยอดดอกเบี้ยสะสม และ สร้างรายการดอกเบี้ย
-            decimal accumulatedInterestAmount = accumulatedInterest.AccumInterestRemain + interestAmount; // รวมยอดดอกเบี้ยสะสม
+            decimal newAccumulatedInterestAmount = accumulatedInterestAmount + interestAmount; // รวมยอดดอกเบี้ยสะสม
 
             // สร้างรายการดอกเบี้ย
             InterestTransaction createInterestTransaction = new InterestTransaction
             {
                 ProductContactId = req.ProductContactId,
                 InterestAmount = interestAmount,
-                AccumulatedAmount = accumulatedInterestAmount,
+                AccumulatedAmount = newAccumulatedInterestAmount,
                 Remark = "ดอกเบี้ยรอบนี้",
                 // Remark = isMaxInterestAmount ? "ดอกเบี้ยรอบนี้สูงกว่าอัตราดอกเบี้ยสูงสุดต่อรอบบิล" : "ดอกเบี้ยรอบนี้",
             };
             _InterestTransactionDAC.CreateInterestTransaction(createInterestTransaction);
 
-            // บันทึกข้อมูลดอกเบี้ยสะสม
-            _accumulatedInterestDAC.UpdateAccumulatedInterest(accumulatedInterestAmount);
+            // ดอกเบี้ยรอบนี้เป็น 0
+            if (interestAmount != 0)
+            {
+                // บันทึกข้อมูลดอกเบี้ยสะสม
+                _accumulatedInterestDAC.UpdateAccumulatedInterest(newAccumulatedInterestAmount);
+            }
 
             return new CalculateInterestResponse()
             {
                 InterestAmount = interestAmount,
-                AccumInterestRemain = accumulatedInterestAmount
+                AccumInterestRemain = newAccumulatedInterestAmount
             };
         }
     }

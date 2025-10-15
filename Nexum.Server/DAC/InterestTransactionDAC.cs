@@ -11,8 +11,9 @@ namespace Nexum.Server.DAC
     {
         public void CreateInterestTransaction(InterestTransaction InterestTransaction)
         {
+            Console.WriteLine($"CreateInterestTransaction: {InterestTransaction}");
             // Implementation to save the InterestTransaction based on the InterestTransaction
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
     }
 }

@@ -28,7 +28,7 @@ namespace Nexum.Server.DAC
         public void UpdateAccumulatedInterest(decimal accumulatedInterest)
         {
             // Implementation to save the AccumulatedInterest based on the accumulatedInterest
-            throw new NotImplementedException();
+            Console.WriteLine($"UpdateAccumulatedInterest: {accumulatedInterest}");
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using Moq;
 using Nexum.Server.DAC;
 using Nexum.Server.Models;
@@ -14,6 +15,7 @@ namespace Nexum.Tests
 
         public InterestServiceTests()
         {
+            Console.OutputEncoding = Encoding.UTF8; // ให้ Console.WriteLine แสดงภาษาไทยถูกต้อง
             _mockAccumulatedInterestDAC = new Mock<IAccumulatedInterestDAC>();
             _mockInterestTransactionDAC = new Mock<IInterestTransactionDAC>();
             _interestService = new InterestService(_mockAccumulatedInterestDAC.Object, _mockInterestTransactionDAC.Object);
@@ -21,21 +23,36 @@ namespace Nexum.Tests
 
 
         #region Normal Cases
+        // ชุดทดสอบแบบ Theory สำหรับเคสปกติ (Normal Cases)
+        // อธิบายพารามิเตอร์:
+        // - principal: ยอดคงเหลือ
+        // - rate: อัตราดอกเบี้ย (รูปทศนิยม เช่น 0.1825 = 18.25%)
+        // - interestType: ประเภทดอกเบี้ย ("PerMonth" | "PerDay")
+        // - initialAccum: ดอกเบี้ยสะสมตั้งต้น
+        // - expectedInterest: ดอกเบี้ยรอบนี้ที่คาดหวัง (ปัดเศษ 2 ตำแหน่ง ตามโค้ดจริง)
+        // - expectedAccum: ยอดดอกเบี้ยสะสมใหม่ที่คาดหวัง
+        [Theory]
         // กรณีทดสอบที่ 1: คำนวณดอกเบี้ย "รายวัน" (ไม่มีดอกเบี้ยสะสมเดิม)
-        [Fact]
-        public void CalculateInterest_PerDay_NoAccumulated_Returns5BathAndAccum5()
+        [InlineData("Normal Cases กรณีทดสอบที่ 1: คำนวณดอกเบี้ย 'รายวัน' (ไม่มีดอกเบี้ยสะสมเดิม)", 10000.0, 0.1825, "PerDay", 0.0, 5.00, 5.00)]
+        // กรณีทดสอบที่ 2: คำนวณดอกเบี้ย "รายเดือน" (ไม่มีดอกเบี้ยสะสมเดิม)
+        [InlineData("Normal Cases กรณีทดสอบที่ 2: คำนวณดอกเบี้ย 'รายเดือน' (ไม่มีดอกเบี้ยสะสมเดิม)", 25000.0, 0.015, "PerMonth", 0.0, 375.00, 375.00)]
+        // กรณีทดสอบที่ 3: คำนวณดอกเบี้ย "รายวัน" (มีดอกเบี้ยสะสมเดิม)
+        [InlineData("Normal Cases กรณีทดสอบที่ 3: คำนวณดอกเบี้ย 'รายวัน' (มีดอกเบี้ยสะสมเดิม)", 10000.0, 0.1825, "PerDay", 150.25, 5.00, 155.25)]
+        // กรณีทดสอบที่ 4: คำนวณดอกเบี้ย "รายเดือน" (มีดอกเบี้ยสะสมเดิม)
+        [InlineData("Normal Cases กรณีทดสอบที่ 4: คำนวณดอกเบี้ย 'รายเดือน' (มีดอกเบี้ยสะสมเดิม)", 25000.0, 0.015, "PerMonth", 450.00, 375.00, 825.00)]
+        public void CalculateInterest_NormalCases_AsTheory(string caseName, double principal, double rate, string interestType, double initialAccum, double expectedInterest, double expectedAccum)
         {
+            Console.WriteLine($"Testing: {caseName}, ยอดคงเหลือ={principal}, อัตราดอกเบี้ย={rate}, ประเภทดอกเบี้ย={interestType}, ดอกเบี้ยสะสมเดิม={initialAccum}, ดอกเบี้ยรอบนี้={expectedInterest}, ดอกเบี้ยสะสมใหม่={expectedAccum}");
             // Arrange
-            var initialAccum = 0m;
             _mockAccumulatedInterestDAC
                 .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
-                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
+                .Returns(new AccumulatedInterest { AccumInterestRemain = (decimal)initialAccum });
 
             var req = new CalculateInterestRequest
             {
-                PrincipalBalance = 10_000m,
-                InterestRate = 0.1825m,
-                InterestType = "PerDay",
+                PrincipalBalance = (decimal)principal,
+                InterestRate = (decimal)rate,
+                InterestType = interestType,
                 InterestFreePeriodDays = default, // ไม่อยู่ในช่วงปลอดดอกเบี้ย
                 ProductContactId = 1,
                 MaxInterestAmount = 999_999m
@@ -43,136 +60,31 @@ namespace Nexum.Tests
 
             // Act
             var res = _interestService.CalculateInterest(req);
+            Console.WriteLine($"ผลลัพธ์: ดอกเบี้ยรอบนี้={res.InterestAmount}, ดอกเบี้ยสะสมใหม่={res.AccumInterestRemain}");
+            Console.WriteLine("--------------------------------");
 
             // Assert
-            Assert.Equal(5.00m, res.InterestAmount); // (10,000 * 0.1825) / 365 = 5.00
-            Assert.Equal(5.00m, res.AccumInterestRemain); // 0 + 5.00
+            Assert.Equal((decimal)expectedInterest, res.InterestAmount);
+            Assert.Equal((decimal)expectedAccum, res.AccumInterestRemain);
 
             _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
                 It.Is<InterestTransaction>(t =>
                     t.ProductContactId == 1 &&
-                    t.InterestAmount == 5.00m &&
-                    t.AccumulatedAmount == 5.00m
+                    t.InterestAmount == (decimal)expectedInterest &&
+                    t.AccumulatedAmount == (decimal)expectedAccum
                 )), Times.Once);
 
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(5.00m), Times.Once);
-        }
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest((decimal)expectedAccum), Times.Once);
 
-        // กรณีทดสอบที่ 2: คำนวณดอกเบี้ย "รายเดือน" (ไม่มีดอกเบี้ยสะสมเดิม)
-        [Fact]
-        public void CalculateInterest_PerMonth_NoAccumulated_Returns375BathAndAccum375()
-        {
-            // Arrange
-            var initialAccum = 0m;
-            _mockAccumulatedInterestDAC
-                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
-                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
-
-            var req = new CalculateInterestRequest
-            {
-                PrincipalBalance = 25_000m,
-                InterestRate = 0.015m,
-                InterestType = "PerMonth",
-                InterestFreePeriodDays = default,
-                ProductContactId = 1,
-                MaxInterestAmount = 999_999m
-            };
-
-            // Act
-            var res = _interestService.CalculateInterest(req);
-
-            // Assert
-            Assert.Equal(375.00m, res.InterestAmount); // 25,000 * 0.015 = 375.00
-            Assert.Equal(375.00m, res.AccumInterestRemain); // 0 + 375.00
-
-            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
-                It.Is<InterestTransaction>(t =>
-                    t.ProductContactId == 1 &&
-                    t.InterestAmount == 375.00m &&
-                    t.AccumulatedAmount == 375.00m
-                )), Times.Once);
-
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(375.00m), Times.Once);
-        }
-
-        // กรณีทดสอบที่ 3: คำนวณดอกเบี้ย "รายวัน" (มีดอกเบี้ยสะสมเดิม)
-        [Fact]
-        public void CalculateInterest_PerDay_WithAccumulated_AccumulateCorrectly()
-        {
-            // Arrange
-            var initialAccum = 150.25m;
-            _mockAccumulatedInterestDAC
-                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
-                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
-
-            var req = new CalculateInterestRequest
-            {
-                PrincipalBalance = 10_000m,
-                InterestRate = 0.1825m,
-                InterestType = "PerDay",
-                InterestFreePeriodDays = default,
-                ProductContactId = 1,
-                MaxInterestAmount = 999_999m
-            };
-
-            // Act
-            var res = _interestService.CalculateInterest(req);
-
-            // Assert
-            Assert.Equal(5.00m, res.InterestAmount);
-            Assert.Equal(155.25m, res.AccumInterestRemain); // 150.25 + 5.00
-
-            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
-                It.Is<InterestTransaction>(t =>
-                    t.InterestAmount == 5.00m &&
-                    t.AccumulatedAmount == 155.25m
-                )), Times.Once);
-
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(155.25m), Times.Once);
-        }
-
-        // กรณีทดสอบที่ 4: คำนวณดอกเบี้ย "รายเดือน" (มีดอกเบี้ยสะสมเดิม)
-        [Fact]
-        public void CalculateInterest_PerMonth_WithAccumulated_AccumulateCorrectly()
-        {
-            // Arrange
-            var initialAccum = 450.00m;
-            _mockAccumulatedInterestDAC
-                .Setup(x => x.GetAccumulatedInterest(It.IsAny<int>()))
-                .Returns(new AccumulatedInterest { AccumInterestRemain = initialAccum });
-
-            var req = new CalculateInterestRequest
-            {
-                PrincipalBalance = 25_000m,
-                InterestRate = 0.015m,
-                InterestType = "PerMonth",
-                InterestFreePeriodDays = default,
-                ProductContactId = 1,
-                MaxInterestAmount = 999_999m
-            };
-
-            // Act
-            var res = _interestService.CalculateInterest(req);
-
-            // Assert
-            Assert.Equal(375.00m, res.InterestAmount);
-            Assert.Equal(825.00m, res.AccumInterestRemain); // 450.00 + 375.00
-
-            _mockInterestTransactionDAC.Verify(d => d.CreateInterestTransaction(
-                It.Is<InterestTransaction>(t =>
-                    t.InterestAmount == 375.00m &&
-                    t.AccumulatedAmount == 825.00m
-                )), Times.Once);
-
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(825.00m), Times.Once);
         }
         #endregion
 
         #region Alternative Cases
-        // กรณีทดสอบที่ 1: ยอดคงเหลือเป็นศูนย์ -> ดอกเบี้ยรอบนี้เป็น 0 และยอดสะสมคงเดิม
+        // กรณีทดสอบที่ 1: ดอกเบี้ยเป็น 0 -> ระบบควรจบการทำงานก่อนบันทึกข้อมูลดอกเบี้ยสะสม
         [Fact]
-        public void CalculateInterest_ZeroPrincipal_KeepAccumulatedUnchanged()
+        public void CalculateInterest_ZeroPrincipal_DoNotUpdateAccumulatedInterest()
         {
+            Console.WriteLine("Alternative Cases กรณีทดสอบที่ 1: ดอกเบี้ยเป็น 0 -> ระบบควรจบการทำงานก่อนบันทึกข้อมูลดอกเบี้ยสะสม (ไม่ควรเรียก UpdateAccumulatedInterest เลย)");
             // Arrange
             var initialAccum = 150.25m;
             _mockAccumulatedInterestDAC
@@ -181,8 +93,8 @@ namespace Nexum.Tests
 
             var req = new CalculateInterestRequest
             {
-                PrincipalBalance = 0m,
-                InterestRate = 0.1825m,
+                PrincipalBalance = 10000m,
+                InterestRate = 0, // ปรับให้เป็น 0 เพื่อทดสอบกรณีที่ดอกเบี้ยเป็น 0
                 InterestType = "PerDay",
                 InterestFreePeriodDays = default,
                 ProductContactId = 1,
@@ -191,6 +103,8 @@ namespace Nexum.Tests
 
             // Act
             var res = _interestService.CalculateInterest(req);
+            Console.WriteLine($"ผลลัพธ์: ดอกเบี้ยรอบนี้={res.InterestAmount}, ดอกเบี้ยสะสมใหม่={res.AccumInterestRemain}");
+            Console.WriteLine("--------------------------------");
 
             // Assert
             Assert.Equal(0m, res.InterestAmount);
@@ -202,13 +116,15 @@ namespace Nexum.Tests
                     t.AccumulatedAmount == initialAccum
                 )), Times.Once);
 
-            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(initialAccum), Times.Once);
+            // ระบบควรจบการทำงานก่อนบันทึกข้อมูลดอกเบี้ยสะสม (ไม่ควรเรียก UpdateAccumulatedInterest เลย)
+            _mockAccumulatedInterestDAC.Verify(d => d.UpdateAccumulatedInterest(It.IsAny<decimal>()), Times.Never);
         }
 
         // กรณีทดสอบที่ 2: อยู่ในช่วงปลอดดอกเบี้ย -> ต้องสร้างรายการด้วยดอกเบี้ย 0 และไม่อัปเดตยอดสะสม
         [Fact]
         public void CalculateInterest_InFreePeriod_CreatesZeroTransaction_NoAccumUpdate()
         {
+            Console.WriteLine("Alternative Cases กรณีทดสอบที่ 2: อยู่ในช่วงปลอดดอกเบี้ย -> ต้องสร้างรายการด้วยดอกเบี้ย 0 และไม่อัปเดตยอดสะสม");
             // Arrange
             var initialAccum = 50.00m;
             _mockAccumulatedInterestDAC
@@ -227,6 +143,8 @@ namespace Nexum.Tests
 
             // Act
             var res = _interestService.CalculateInterest(req);
+            Console.WriteLine($"ผลลัพธ์: ดอกเบี้ยรอบนี้={res.InterestAmount}, ดอกเบี้ยสะสมใหม่={res.AccumInterestRemain}");
+            Console.WriteLine("--------------------------------");
 
             // Assert
             Assert.Equal(0m, res.InterestAmount);
@@ -246,6 +164,7 @@ namespace Nexum.Tests
         [Fact]
         public void CalculateInterest_NotInFreePeriod_CalculatesNormally()
         {
+            Console.WriteLine("Alternative Cases กรณีทดสอบที่ 3: ไม่อยู่ในช่วงปลอดดอกเบี้ย -> ต้องคำนวณดอกเบี้ยรายวันตามปกติ");
             // Arrange
             var initialAccum = 50.00m;
             _mockAccumulatedInterestDAC
@@ -264,6 +183,8 @@ namespace Nexum.Tests
 
             // Act
             var res = _interestService.CalculateInterest(req);
+            Console.WriteLine($"ผลลัพธ์: ดอกเบี้ยรอบนี้={res.InterestAmount}, ดอกเบี้ยสะสมใหม่={res.AccumInterestRemain}");
+            Console.WriteLine("--------------------------------");
 
             // Assert
             Assert.Equal(15.00m, res.InterestAmount); // (30,000 * 0.1825) / 365 = 15.00
@@ -282,6 +203,7 @@ namespace Nexum.Tests
         [Fact]
         public void CalculateInterest_FreePeriodEndsToday_StillZeroInterest()
         {
+            Console.WriteLine("Alternative Cases กรณีทดสอบที่ 4: วันสิ้นสุดช่วงปลอดดอกเบี้ยเป็นวันนี้พอดี -> ยังถือว่าอยู่ในช่วงปลอดดอกเบี้ย (<=) ดอกเบี้ย 0 บาท");
             // Arrange
             var initialAccum = 10.00m;
             _mockAccumulatedInterestDAC
@@ -301,6 +223,8 @@ namespace Nexum.Tests
 
             // Act
             var res = _interestService.CalculateInterest(req);
+            Console.WriteLine($"ผลลัพธ์: ดอกเบี้ยรอบนี้={res.InterestAmount}, ดอกเบี้ยสะสมใหม่={res.AccumInterestRemain}");
+            Console.WriteLine("--------------------------------");
 
             // Assert
             Assert.Equal(0m, res.InterestAmount);
@@ -321,22 +245,28 @@ namespace Nexum.Tests
         [Fact]
         public void CalculateInterest_NullRequest_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(() => _interestService.CalculateInterest(null!));
+            Console.WriteLine("Exception Cases กรณีทดสอบที่ 1: Object Input เป็น Null");
+            var ex = Assert.Throws<ArgumentNullException>(() => _interestService.CalculateInterest(null!));
+            Console.WriteLine($"ผลลัพธ์: {ex.Message}");
+            Console.WriteLine("--------------------------------");
         }
 
-        // กรณีทดสอบที่ 2: Input ขาดหาย (Missing Value) - InterestType ไม่ได้ระบุ (null)
+        // กรณีทดสอบที่ 2: Input ขาดหาย (Missing Value) - ทำสอบทุก key
         [Fact]
-        public void CalculateInterest_MissingInterestType_ThrowsArgumentException()
+        public void CalculateInterest_MissingRequiredField_ThrowsArgumentException()
         {
+            Console.WriteLine($"Exception Cases กรณีทดสอบที่ 2: Input ขาดหาย (Missing Value)");
             var req = new CalculateInterestRequest
             {
-                PrincipalBalance = 100m,
+                PrincipalBalance = 1m,
                 InterestRate = 0.01m,
                 InterestType = null,
                 ProductContactId = 1
             };
 
-            Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+            var ex = Assert.Throws<ArgumentException>(() => _interestService.CalculateInterest(req));
+            Console.WriteLine($"ผลลัพธ์: {ex.Message}");
+            Console.WriteLine("--------------------------------");
         }
 
         // กรณีทดสอบที่ 3: ยอดคงเหลือติดลบ (Negative Value)
