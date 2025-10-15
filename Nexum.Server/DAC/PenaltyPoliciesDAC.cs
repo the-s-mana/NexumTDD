@@ -27,8 +27,8 @@ namespace Nexum.Server.DAC
                 PolicyName = policy.PolicyName,
                 PenaltyType = policy.PenaltyType,
                 PenaltyRate = policy.PenaltyRate,
-                FixedAmount = policy.FixedAmount,
-                MaxPenalty = policy.MaxPenalty,
+                PenaltyFixed = policy.PenaltyFixed,
+                PenaltyMax = policy.PenaltyMax,
                 TotalCap = policy.TotalCap,
                 PenaltyFreePeriodDays = policy.PenaltyFreePeriodDays,
                 MinimumPaymentRate = policy.MinimumPaymentRate,
@@ -44,7 +44,7 @@ namespace Nexum.Server.DAC
                     PenaltyPolicyID = 1,
                     PolicyName = "Standard Daily Penalty",
                     PenaltyType = "Daily",
-                    FixedAmount = 100m, // 100 บาท = 100
+                    PenaltyFixed = 100m, // 100 บาท = 100
                     TotalCap = 1000.0m,
                     PenaltyFreePeriodDays = 5,
                     MinimumPaymentRate = 10.0m, // 10%
@@ -54,7 +54,7 @@ namespace Nexum.Server.DAC
                     PenaltyPolicyID = 2,
                     PolicyName = "Fixed Penalty",
                     PenaltyType = "Fixed",
-                    FixedAmount = 200.0m,
+                    PenaltyFixed = 200.0m,
                     MinimumPaymentRate = 10.0m, // 10%
                 },
                 new ProductContact
@@ -63,7 +63,7 @@ namespace Nexum.Server.DAC
                     PolicyName = "Percentage Penalty",
                     PenaltyType = "Percentage",
                     PenaltyRate = 2.5m,
-                    MaxPenalty = 300.0m,
+                    PenaltyMax = 300.0m,
                     PenaltyFreePeriodDays = 5,
                     MinimumPaymentRate = 10.0m, // 10%
                 },
@@ -72,8 +72,8 @@ namespace Nexum.Server.DAC
                     PenaltyPolicyID = 4,
                     PolicyName = "Special Daily Penalty",
                     PenaltyType = "Daily",
-                    FixedAmount = 200.0m,
-                    MaxPenalty = 400.0m,
+                    PenaltyFixed = 200.0m,
+                    PenaltyMax = 400.0m,
                     TotalCap = 1200.0m,
                     PenaltyFreePeriodDays = 2,
                     MinimumPaymentRate = 10.0m, // 10%

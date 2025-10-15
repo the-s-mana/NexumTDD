@@ -31,7 +31,7 @@ namespace Nexum.Tests
             {
                 PenaltyPolicyID = 1,
                 PenaltyType = "Daily",
-                FixedAmount = 100m,
+                PenaltyFixed = 100m,
                 TotalCap = 1000m,
                 PenaltyFreePeriodDays = 5
             },
@@ -39,22 +39,22 @@ namespace Nexum.Tests
             {
                 PenaltyPolicyID = 2,
                 PenaltyType = "Fixed",
-                FixedAmount = 200m,
+                PenaltyFixed = 200m,
             },
             new ProductContact
             {
                 PenaltyPolicyID = 3,
                 PenaltyType = "Percentage",
                 PenaltyRate = 2.5m,
-                MaxPenalty = 300m,
+                PenaltyMax = 300m,
                 PenaltyFreePeriodDays = 5
             },
             new ProductContact
             {
                 PenaltyPolicyID = 4,
                 PenaltyType = "Daily",
-                FixedAmount = 200m,
-                MaxPenalty = 400m,
+                PenaltyFixed = 200m,
+                PenaltyMax = 400m,
                 TotalCap = 1200m,
                 PenaltyFreePeriodDays = 2
             },

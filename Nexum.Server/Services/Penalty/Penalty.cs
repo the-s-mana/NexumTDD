@@ -70,10 +70,10 @@ namespace Nexum.Server.Services.Penalty
                     {
                         OutstandingBalance = penaltyRequest.OutstandingBalance,
                         OverdueDays = OverdueDays,
-                        MaxPenalty = PenaltyPolicies.MaxPenalty,
+                        MaxPenalty = PenaltyPolicies.PenaltyMax,
                         TotalCap = PenaltyPolicies.TotalCap,
                         Percentage = PenaltyPolicies.PenaltyRate,
-                        FixedAmount = PenaltyPolicies.FixedAmount,
+                        FixedAmount = PenaltyPolicies.PenaltyFixed,
                     };
                     switch (PenaltyPolicies.PenaltyType)
                     {
