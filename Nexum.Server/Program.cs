@@ -4,6 +4,8 @@ using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
 using Nexum.Server.Utils;
 using SurrealDb.Net;
+using Nexum.Server.Data.Models;
+using static Nexum.Server.Data.IDbProviderFactory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,9 +36,11 @@ builder.Services.AddScoped<IFixedPenalty, FixedPenalty>();
 // Register DateTimeUtils
 builder.Services.AddScoped<IDateTimeUtils, DateTimeUtils>();
 
-builder.Services.AddSingleton<ISurrealDbProvider, SurrealDbProvider>();
+builder.Services.AddScoped<ISurrealDbProvider<Book>, SurrealDbProvider<Book>>();
+var surrealDbConfig = builder.Configuration.GetSection("SurrealDbSettings");
+builder.Services.AddSurreal(x => x.FromConnectionString(surrealDbConfig["ConnectionString"]), ServiceLifetime.Scoped);
 builder.Services.AddTransient<IBookService, BookService>();
-
+builder.Services.AddScoped<SurrealDbProviderFactoryBase, SurrealDbProviderFactory>();
 
 var app = builder.Build();
 

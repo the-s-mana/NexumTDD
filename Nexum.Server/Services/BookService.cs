@@ -2,6 +2,7 @@
 using Nexum.Server.Data;
 using Nexum.Server.Data.Models;
 using SurrealDb.Net;
+using static Nexum.Server.Data.IDbProviderFactory;
 
 namespace Nexum.Server.Services;
 public interface IBookService
@@ -11,22 +12,25 @@ public interface IBookService
 }
 public class BookService : IBookService
 {
-    private readonly SurrealDbClient _dbClient;
+    ISurrealDbProvider<Book> bookDbProvider;
+    SurrealDbProviderFactoryBase surrealDbProviderFactory;
 
     // เราขอ ISurrealDbProvider จาก DI Container ผ่าน Constructor
-    public BookService(ISurrealDbProvider dbProvider)
+    public BookService(ISurrealDbProvider<Book> bookDbProvider, SurrealDbProviderFactoryBase surrealDbProviderFactory)
     {
-        _dbClient = dbProvider.Client;
+        this.surrealDbProviderFactory = surrealDbProviderFactory;
+        this.bookDbProvider = surrealDbProviderFactory.Create<Book>();
     }
 
     public async Task<Book> CreateBookAsync(Book newBook)
     {
-        return await _dbClient.Create("book", newBook);
+        //return await _dbClient.Create("book", newBook);
+        throw new NotImplementedException();
     }
 
     public async Task<List<Book>> GetAllBooksAsync()
     {
-        var booksEnumerable = await _dbClient.Select<Book>("book");
+        var booksEnumerable = await bookDbProvider.List();
 
         return booksEnumerable.ToList();
     }

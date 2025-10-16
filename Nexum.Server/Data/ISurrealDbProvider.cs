@@ -1,7 +1,7 @@
 ﻿using SurrealDb.Net;
 
 namespace Nexum.Server.Data;
-public interface ISurrealDbProvider
+public interface ISurrealDbProvider<T>
 {
-    SurrealDbClient Client { get; }
+    public abstract Task<IEnumerable<T>> List(CancellationToken cancellationToken = default);
 }
