@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    container_name: surrealdb
+    # เปลี่ยนจาก memory เป็นการเก็บลงไฟล์ที่ path /data/mydatabase.db ภายใน container
+    command: start --user root --pass root file:///data/mydatabase.db
+    ports:
+      - "8000:8000"
+    # เพิ่มส่วนนี้เพื่อ map volume
+    volumes:
+      - ./surrealdb-data:/data
+    environment:
+      SURREAL_USER: root
+      SURREAL_PASS: root
+    restart: unless-stopped

@@ -1,6 +1,9 @@
+using Nexum.Server.Data;
 using Nexum.Server.DAC;
 using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
+using Nexum.Server.Utils;
+using SurrealDb.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +30,12 @@ builder.Services.AddScoped<IDailyPenalty, DailyPenalty>();
 builder.Services.AddScoped<IPercentagePenalty, PercentagePenalty>();
 builder.Services.AddScoped<IPenaltyPolicies, PenaltyPolicies>();
 builder.Services.AddScoped<IFixedPenalty, FixedPenalty>();
+
+// Register DateTimeUtils
+builder.Services.AddScoped<IDateTimeUtils, DateTimeUtils>();
+
+builder.Services.AddSingleton<ISurrealDbProvider, SurrealDbProvider>();
+builder.Services.AddTransient<IBookService, BookService>();
 
 
 var app = builder.Build();
