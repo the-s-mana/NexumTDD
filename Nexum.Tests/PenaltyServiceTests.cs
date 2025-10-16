@@ -1,6 +1,7 @@
 ﻿using Moq;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
+using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
 
 namespace Nexum.Tests
@@ -11,13 +12,16 @@ namespace Nexum.Tests
         private readonly Mock<IPenaltyPolicies> _policies = new();
         private readonly Mock<IDailyPenalty> _daily = new();
         private readonly Mock<IFixedPenalty> _fixed = new();
-        private Penalty CreateSut()
+        private readonly Mock<IDateTimeProvider> _clock = new();
+        private Penalty CreateSut(DateTime frozenNow)
         {
+            _clock.Setup(c => c.Now).Returns(frozenNow);
+
             _policies.Setup(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()))
                     .Returns((PenaltyPoliciesRequest req) =>
                         _policyList.Single(x => x.PenaltyPolicyID == req.PenaltyPolicyID));
 
-            return new Penalty(_percentage.Object, _policies.Object, _daily.Object, _fixed.Object);
+            return new Penalty(_percentage.Object, _policies.Object, _daily.Object, _fixed.Object, _clock.Object);
         }
         #region Policy List
         private readonly List<ProductContact> _policyList = new()
@@ -56,20 +60,19 @@ namespace Nexum.Tests
         };
         #endregion
 
-
         #region Normal Cases
         [Fact(DisplayName = "Normal Case 1: จ่ายขั้นต่ำ + ตรงเวลา -> ไม่คิดค่าปรับ")]
         public void Normal_1_MinPayment_OnTime_NoPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 12, 0, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 1,          // Daily: Fixed=100, TotalCap=1000, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 3000m,
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 300m          // จ่ายขั้นต่ำ 10%
             };
             var expected = new PenaltyResponse
@@ -79,7 +82,7 @@ namespace Nexum.Tests
                 MinimumPayment = 300m,
                 PenaltyAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act
             var result = sut.GetPenalty(request);
             // Assert
@@ -100,14 +103,14 @@ namespace Nexum.Tests
         public void Normal_2_FullPayment_OnTime_NoPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 2,
                 PenaltyPolicyID = 2,          // Fixed=200
                 ActiveStatus = "Active",
                 OutstandingBalance = 3000m,
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 3000m         // จ่ายเต็ม
             };
             var expected = new PenaltyResponse
@@ -117,7 +120,7 @@ namespace Nexum.Tests
                 PaymentAmount = 3000m,
                 PenaltyAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act
             var result = sut.GetPenalty(request);
             // Assert
@@ -176,14 +179,14 @@ namespace Nexum.Tests
         public void Normal_4_MinPayment_WithinGrace_NoPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 4,
                 PenaltyPolicyID = 1,          // Daily: Fixed=100, TotalCap=1000, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 2500m,
-                DueDate = now.AddDays(-3),    // อยู่ในช่วงผ่อนผัน 5 วัน
+                DueDate = frozenNow.AddDays(-3),    // อยู่ในช่วงผ่อนผัน 5 วัน
                 PaymentAmount = 250m           // จ่ายขั้นต่ำ 10%
             };
             var expected = new PenaltyResponse
@@ -193,7 +196,7 @@ namespace Nexum.Tests
                 MinimumPayment = 250m,
                 PenaltyAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act
             var result = sut.GetPenalty(request);
             // Assert
@@ -214,14 +217,14 @@ namespace Nexum.Tests
         public void Normal_5_UnderMinPayment_WithinGrace_NoPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 5,
                 PenaltyPolicyID = 1,          // Daily: Fixed=100, TotalCap=1000, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 5000m,
-                DueDate = now.AddDays(-5),    // อยู่ในช่วงผ่อนผัน 5 วัน
+                DueDate = frozenNow.AddDays(-5),    // อยู่ในช่วงผ่อนผัน 5 วัน
                 PaymentAmount = 100m           // ไม่ถึงขั้นต่ำ 500
             };
             var expected = new PenaltyResponse
@@ -231,7 +234,7 @@ namespace Nexum.Tests
                 MinimumPayment = 500m,
                 PenaltyAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act
             var result = sut.GetPenalty(request);
             // Assert
@@ -252,14 +255,14 @@ namespace Nexum.Tests
         public void Normal_6_UnderMinPayment_BeyondGrace_WithPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 6,
                 PenaltyPolicyID = 1,          // Daily: Fixed=100, TotalCap=1000, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 5000m,
-                DueDate = now.AddDays(-6),   // เลยช่วงผ่อนผัน 5 วัน
+                DueDate = frozenNow.AddDays(-6),   // เลยช่วงผ่อนผัน 5 วัน
                 PaymentAmount = 100m           // ไม่ถึงขั้นต่ำ 400
             };
             var expected = new PenaltyResponse
@@ -269,7 +272,7 @@ namespace Nexum.Tests
                 MinimumPayment = 400m,
                 PenaltyAmount = 600m           // 6 วัน * 100
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             _daily.Setup(d => d.Calculate(It.IsAny<PenaltyContext>()))
                   .Returns((PenaltyContext ctx) =>
                       Math.Min(ctx.OverdueDays * ctx.FixedAmount, ctx.TotalCap));
@@ -293,14 +296,14 @@ namespace Nexum.Tests
         public void Normal_7_Overdue_FixedPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 7,
                 PenaltyPolicyID = 2,          // Fixed=200
                 ActiveStatus = "Active",
                 OutstandingBalance = 4000m,
-                DueDate = now.AddDays(-1),    // เลยกำหนด 1 วัน
+                DueDate = frozenNow.AddDays(-1),    // เลยกำหนด 1 วัน
                 PaymentAmount = 0m             // ไม่จ่าย
             };
             var expected = new PenaltyResponse
@@ -309,7 +312,7 @@ namespace Nexum.Tests
                 OutstandingBalance = 4000m,
                 PenaltyAmount = 200m           // ค่าปรับคงที่
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             _fixed.Setup(f => f.Calculate(It.IsAny<PenaltyContext>()))
                   .Returns((PenaltyContext ctx) => ctx.FixedAmount);
             // Act
@@ -331,14 +334,14 @@ namespace Nexum.Tests
         public void Normal_8_MinPayment_WithinGrace_Percentage()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 8,
                 PenaltyPolicyID = 3,          // Rate=2.5, Max=300, Grace=3
                 ActiveStatus = "Active",
                 OutstandingBalance = 10000m,
-                DueDate = now.AddDays(-2),   // อยู่ในช่วงผ่อนผัน 3 วัน
+                DueDate = frozenNow.AddDays(-2),   // อยู่ในช่วงผ่อนผัน 3 วัน
                 PaymentAmount = 1000m           // จ่ายขั้นต่ำ 10%
             };
             var expected = new PenaltyResponse
@@ -348,7 +351,7 @@ namespace Nexum.Tests
                 MinimumPayment = 1000m,
                 PenaltyAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             //Act
             var result = sut.GetPenalty(request);
             //Assert
@@ -369,14 +372,14 @@ namespace Nexum.Tests
         public void Normal_9_UnderMinPayment_WithinGrace_Percentage()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 9,
                 PenaltyPolicyID = 3,          // Rate=2.5, Max=300, Grace=3
                 ActiveStatus = "Active",
                 OutstandingBalance = 3000m,
-                DueDate = now.AddDays(-1),   // อยู่ในช่วงผ่อนผัน 3 วัน
+                DueDate = frozenNow.AddDays(-1),   // อยู่ในช่วงผ่อนผัน 3 วัน
                 PaymentAmount = 100m           // ไม่ถึงขั้นต่ำ 300
             };
             var expected = new PenaltyResponse
@@ -386,7 +389,7 @@ namespace Nexum.Tests
                 MinimumPayment = 300m,
                 PenaltyAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act
             var result = sut.GetPenalty(request);
             // Assert
@@ -407,14 +410,14 @@ namespace Nexum.Tests
         public void Normal_10_UnderMinPayment_BeyondGrace_Percentage()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 10,
                 PenaltyPolicyID = 3,          // Rate=2.5, Max=300, Grace=3
                 ActiveStatus = "Active",
                 OutstandingBalance = 500m,
-                DueDate = now.AddDays(-5),   // เลยช่วงผ่อนผัน 2 วัน
+                DueDate = frozenNow.AddDays(-5),   // เลยช่วงผ่อนผัน 2 วัน
                 PaymentAmount = 0m           // ไม่ถึงขั้นต่ำ 500
             };
             var expected = new PenaltyResponse
@@ -424,7 +427,7 @@ namespace Nexum.Tests
                 MinimumPayment = 50m,
                 PenaltyAmount = 12.5m           // 2.5% ของ 500 = 12.5 (ไม่เกิน Max)
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             _percentage.Setup(p => p.Calculate(It.IsAny<PenaltyContext>()))
                        .Returns((PenaltyContext ctx) =>
                            Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
@@ -449,14 +452,14 @@ namespace Nexum.Tests
         public void Alternative_1_UnderMinPayment_BeyondGrace_Daily_CapPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 1,          // Daily: Fixed=100, TotalCap=1000, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 15000m,
-                DueDate = now.AddDays(-13),   // เลยช่วงผ่อนผัน 13 วัน
+                DueDate = frozenNow.AddDays(-13),   // เลยช่วงผ่อนผัน 13 วัน
                 PaymentAmount = 0m             // ไม่ถึงขั้นต่ำ 1500
             };
             var expected = new PenaltyResponse
@@ -466,7 +469,7 @@ namespace Nexum.Tests
                 MinimumPayment = 1000m,
                 PenaltyAmount = 1000m           // 13 วัน * 100 = 2000 แต่ชนเพดาน 1000
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             _daily.Setup(d => d.Calculate(It.IsAny<PenaltyContext>()))
                   .Returns((PenaltyContext ctx) =>
                       Math.Min(ctx.OverdueDays * ctx.FixedAmount, ctx.TotalCap));
@@ -490,14 +493,14 @@ namespace Nexum.Tests
         public void Alternative_2_PartialPayment_UnderMin_BeyondGrace_Percentage()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 2,
                 PenaltyPolicyID = 3,          // Rate=2.5, Max=300, Grace=3
                 ActiveStatus = "Active",
                 OutstandingBalance = 5000m,
-                DueDate = now.AddDays(-4),   // เลยช่วงผ่อนผัน 4 วัน
+                DueDate = frozenNow.AddDays(-4),   // เลยช่วงผ่อนผัน 4 วัน
                 PaymentAmount = 300m           // ไม่ถึงขั้นต่ำ 500
             };
             var expected = new PenaltyResponse
@@ -507,7 +510,7 @@ namespace Nexum.Tests
                 MinimumPayment = 500m,
                 PenaltyAmount = 117.5m           // 2.5% ของ 5000-300 = 117.5 (ไม่เกิน Max)
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             _percentage.Setup(p => p.Calculate(It.IsAny<PenaltyContext>()))
                        .Returns((PenaltyContext ctx) =>
                            Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
@@ -531,14 +534,14 @@ namespace Nexum.Tests
         public void Alternative_3_UnderMinPayment_BeyondGrace_Percentage_CapPenalty()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 3,
                 PenaltyPolicyID = 3,          // Rate=2.5, Max=300, Grace=3
                 ActiveStatus = "Active",
                 OutstandingBalance = 13000m,
-                DueDate = now.AddDays(-5),    // เลยช่วงผ่อนผัน 6 วัน
+                DueDate = frozenNow.AddDays(-5),    // เลยช่วงผ่อนผัน 6 วัน
                 PaymentAmount = 0m             // ไม่ถึงขั้นต่ำ 2000
             };
             var expected = new PenaltyResponse
@@ -548,7 +551,7 @@ namespace Nexum.Tests
                 MinimumPayment = 1300m,
                 PenaltyAmount = 300m           // 2.5% ของ 13000 = 325 แต่ชนเพดาน 300
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             _percentage.Setup(p => p.Calculate(It.IsAny<PenaltyContext>()))
                        .Returns((PenaltyContext ctx) =>
                            Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
@@ -572,9 +575,10 @@ namespace Nexum.Tests
         [Fact(DisplayName = "Exception Case 1: Request เป็น null -> ArgumentNullException")]
         public void Exception_1_Request_Null_ArgumentNullException()
         {
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             // Arrange
             PenaltyRequest? request = null;
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act & Assert
             var exception = Assert.Throws<ArgumentNullException>(() => sut.GetPenalty(request));
             Assert.Equal("Value cannot be null. (Parameter 'penaltyRequest')", exception.Message);
@@ -588,17 +592,17 @@ namespace Nexum.Tests
         public void Exception_2_OutstandingBalance_Zero_ArgumentException()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 1,
                 ActiveStatus = "Active",
                 OutstandingBalance = 0m,      // ไม่ถูกต้อง
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act & Assert
             var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
             Assert.Equal("OutstandingBalance must be greater than zero.", exception.Message);
@@ -612,17 +616,17 @@ namespace Nexum.Tests
         public void Exception_3_UserId_Zero_ArgumentException()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 0,                    // ไม่ถูกต้อง
                 PenaltyPolicyID = 1,
                 ActiveStatus = "Active",
                 OutstandingBalance = 1000m,
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act & Assert
             var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
             Assert.Equal("UserId must be greater than zero.", exception.Message);
@@ -636,17 +640,17 @@ namespace Nexum.Tests
         public void Exception_4_ActiveStatus_Null_ArgumentException()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 1,
                 ActiveStatus = null,           // ไม่ถูกต้อง
                 OutstandingBalance = 1000m,
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act & Assert
             var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
             Assert.Equal("ActiveStatus must be either 'Active' or 'Inactive'.", exception.Message);
@@ -660,17 +664,17 @@ namespace Nexum.Tests
         public void Exception_5_ActiveStatus_Invalid_ArgumentException()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 1,
                 ActiveStatus = "Pending",      // ไม่ถูกต้อง
                 OutstandingBalance = 1000m,
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act & Assert
             var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
             Assert.Equal("ActiveStatus must be either 'Active' or 'Inactive'.", exception.Message);
@@ -684,17 +688,17 @@ namespace Nexum.Tests
         public void Exception_6_ActiveStatus_Inactive_InvalidOperationException()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 1,
                 ActiveStatus = "Inactive",     // ไม่ถูกต้อง
                 OutstandingBalance = 1000m,
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act & Assert
             var exception = Assert.Throws<InvalidOperationException>(() => sut.GetPenalty(request));
             Assert.Equal("Cannot calculate penalty for inactive users.", exception.Message);
@@ -717,7 +721,7 @@ namespace Nexum.Tests
                 DueDate = default(DateTime),                // ไม่ถูกต้อง
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(default(DateTime));
             // Act & Assert
             var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
             Assert.Equal("DueDate must be a valid date.", exception.Message);
@@ -731,17 +735,17 @@ namespace Nexum.Tests
         public void Exception_8_DueDate_Future_InvalidOperationException()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 1,
                 ActiveStatus = "Active",
                 OutstandingBalance = 1000m,
-                DueDate = now.AddDays(1),     // ไม่ถูกต้อง
+                DueDate = frozenNow.AddDays(1),     // ไม่ถูกต้อง
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             // Act & Assert
             var exception = Assert.Throws<InvalidOperationException>(() => sut.GetPenalty(request));
             Assert.Equal("DueDate cannot be in the future.", exception.Message);
@@ -755,17 +759,17 @@ namespace Nexum.Tests
         public void Exception_9_PenaltyPolicyID_NotFound_KeyNotFoundException()
         {
             // Arrange
-            var now = DateTime.Now.Date;
+            var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             var request = new PenaltyRequest
             {
                 UserId = 1,
                 PenaltyPolicyID = 999,         // ไม่ถูกต้อง
                 ActiveStatus = "Active",
                 OutstandingBalance = 1000m,
-                DueDate = now,
+                DueDate = frozenNow,
                 PaymentAmount = 0m
             };
-            var sut = CreateSut();
+            var sut = CreateSut(frozenNow);
             //Act & Assert
             Assert.Throws<InvalidOperationException>(() => sut.GetPenalty(request));
             _policies.Verify(p => p.penaltyPolicies(

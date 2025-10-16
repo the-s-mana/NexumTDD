@@ -13,12 +13,14 @@ namespace Nexum.Server.Services.Penalty
         public readonly IPenaltyPolicies penaltyPolicies;
         public readonly IDailyPenalty dailyPenalty;
         public readonly IFixedPenalty fixedPenalty;
-        public Penalty(IPercentagePenalty percentagePenalty, IPenaltyPolicies penaltyPolicies, IDailyPenalty dailyPenalty, IFixedPenalty fixedPenalty)
+        public readonly IDateTimeProvider _clock;
+        public Penalty(IPercentagePenalty percentagePenalty, IPenaltyPolicies penaltyPolicies, IDailyPenalty dailyPenalty, IFixedPenalty fixedPenalty, IDateTimeProvider? clock = null)
         {
             this.percentagePenalty = percentagePenalty;
             this.penaltyPolicies = penaltyPolicies;
             this.dailyPenalty = dailyPenalty;
             this.fixedPenalty = fixedPenalty;
+            this._clock = clock ?? new SystemDateTimeProvider();
         }
         public PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest)
         {
@@ -41,7 +43,9 @@ namespace Nexum.Server.Services.Penalty
             if (penaltyRequest.ActiveStatus == "Inactive")
                 throw new InvalidOperationException("Cannot calculate penalty for inactive users.");
 
-            if (penaltyRequest.DueDate > DateTime.Now)
+            var now = _clock.Now;
+            Console.WriteLine($"Current DateTime: {now}");
+            if (penaltyRequest.DueDate > now)
                 throw new InvalidOperationException("DueDate cannot be in the future.");
 
             #endregion
@@ -60,48 +64,95 @@ namespace Nexum.Server.Services.Penalty
             penaltyResponse.PaymentAmount = penaltyRequest.PaymentAmount;
 
             //ตรวจสอบเลย วันครบกำหนด
-            if (penaltyRequest.DueDate.Date < DateTime.Now.Date || penaltyRequest.PaymentAmount < minPayment)
-            {
-                int OverdueDays = (DateTime.Now.Date - penaltyRequest.DueDate.Date).Days; //คำนวณจำนวนวันที่เกินกำหนด
-                // ควรคำนวนวันที่ปรับใหม่ไหม เช่น OverdueDaysNew = OverdueDays - GracePeriodDays
-                if (OverdueDays > PenaltyPolicies.PenaltyFreePeriodDays)
-                {
-                    PenaltyContext context = new PenaltyContext
-                    {
-                        OutstandingBalance = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount,
-                        OverdueDays = OverdueDays,
-                        MaxPenalty = PenaltyPolicies.MaxPenalty,
-                        TotalCap = PenaltyPolicies.TotalCap,
-                        Percentage = PenaltyPolicies.PenaltyRate,
-                        FixedAmount = PenaltyPolicies.FixedAmount,
-                    };
-                    switch (PenaltyPolicies.PenaltyType)
-                    {
-                        case "Percentage":
-                            penaltyResponse.PenaltyAmount = percentagePenalty.Calculate(context);
-                            break;
-                        case "Daily":
-                            penaltyResponse.PenaltyAmount = dailyPenalty.Calculate(context);
-                            break;
-                        case "Fixed":
-                            penaltyResponse.PenaltyAmount = fixedPenalty.Calculate(context);
-                            break;
-                        default:
-                            throw new NotSupportedException($"Penalty type '{PenaltyPolicies.PenaltyPolicyID}' is not supported.");
-                    }
-                }
-                else
-                {
-                    penaltyResponse.PenaltyAmount = 0;
-                }
-            }
-            else
+            var overdue = now - penaltyRequest.DueDate;
+            bool isOverdue = overdue > TimeSpan.Zero;
+            bool underMin = penaltyRequest.PaymentAmount < minPayment;
+            
+            if(!(isOverdue || underMin))
             {
                 penaltyResponse.PenaltyAmount = 0;
                 return penaltyResponse;
             }
-
+            
+            var grace = TimeSpan.FromDays(PenaltyPolicies.PenaltyFreePeriodDays);
+            if(overdue <= grace)
+            {
+                penaltyResponse.PenaltyAmount = 0;
+                return penaltyResponse;
+            }
+            
+            var amountBase = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount;
+            if (amountBase < 0) amountBase = 0;
+            
+            int chargeDays = (int)Math.Ceiling((overdue - grace).TotalDays);
+            if(chargeDays < 0) chargeDays = 0;
+            PenaltyContext context = new PenaltyContext
+            {
+                OutstandingBalance = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount,
+                OverdueDays = chargeDays,
+                MaxPenalty = PenaltyPolicies.MaxPenalty,
+                TotalCap = PenaltyPolicies.TotalCap,
+                Percentage = PenaltyPolicies.PenaltyRate,
+                FixedAmount = PenaltyPolicies.FixedAmount,
+            };
+            switch (PenaltyPolicies.PenaltyType)
+            {
+                case "Percentage":
+                    penaltyResponse.PenaltyAmount = percentagePenalty.Calculate(context);
+                    break;
+                case "Daily":
+                    penaltyResponse.PenaltyAmount = dailyPenalty.Calculate(context);
+                    break;
+                case "Fixed":
+                    penaltyResponse.PenaltyAmount = fixedPenalty.Calculate(context);
+                    break;
+                default:
+                    throw new NotSupportedException($"Penalty type '{PenaltyPolicies.PenaltyPolicyID}' is not supported.");
+            }
+            
             return penaltyResponse;
+            //if (penaltyRequest.DueDate.Date < today || penaltyRequest.PaymentAmount < minPayment)
+            //{
+            //    int OverdueDays = Math.Max(0, (today - penaltyRequest.DueDate.Date).Days); //คำนวณจำนวนวันที่เกินกำหนด
+            //    // ควรคำนวนวันที่ปรับใหม่ไหม เช่น OverdueDaysNew = OverdueDays - GracePeriodDays
+            //    if (OverdueDays > PenaltyPolicies.PenaltyFreePeriodDays)
+            //    {
+            //        PenaltyContext context = new PenaltyContext
+            //        {
+            //            OutstandingBalance = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount,
+            //            OverdueDays = OverdueDays,
+            //            MaxPenalty = PenaltyPolicies.MaxPenalty,
+            //            TotalCap = PenaltyPolicies.TotalCap,
+            //            Percentage = PenaltyPolicies.PenaltyRate,
+            //            FixedAmount = PenaltyPolicies.FixedAmount,
+            //        };
+            //        switch (PenaltyPolicies.PenaltyType)
+            //        {
+            //            case "Percentage":
+            //                penaltyResponse.PenaltyAmount = percentagePenalty.Calculate(context);
+            //                break;
+            //            case "Daily":
+            //                penaltyResponse.PenaltyAmount = dailyPenalty.Calculate(context);
+            //                break;
+            //            case "Fixed":
+            //                penaltyResponse.PenaltyAmount = fixedPenalty.Calculate(context);
+            //                break;
+            //            default:
+            //                throw new NotSupportedException($"Penalty type '{PenaltyPolicies.PenaltyPolicyID}' is not supported.");
+            //        }
+            //    }
+            //    else
+            //    {
+            //        penaltyResponse.PenaltyAmount = 0;
+            //    }
+            //}
+            //else
+            //{
+            //    penaltyResponse.PenaltyAmount = 0;
+            //    return penaltyResponse;
+            //}
+
+            //return penaltyResponse;
         }
     }
 }
