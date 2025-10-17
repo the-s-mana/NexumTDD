@@ -82,3 +82,7 @@ Content-Type: application/json
 }
 
 ###
+GET {{Nexum.Server_HostAddress}}/api/Books/GetAllBooks
+Content-Type: application/json
+
+###

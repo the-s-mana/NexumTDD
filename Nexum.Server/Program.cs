@@ -1,6 +1,11 @@
+using Microsoft.Extensions.DependencyInjection;
 using Nexum.Server.DAC;
+using Nexum.Server.Data;
+using Nexum.Server.Data.Models;
 using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
+using Nexum.Server.Services.test;
+using SurrealDb.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +32,9 @@ builder.Services.AddScoped<IDailyPenalty, DailyPenalty>();
 builder.Services.AddScoped<IPercentagePenalty, PercentagePenalty>();
 builder.Services.AddScoped<IPenaltyPolicies, PenaltyPolicies>();
 builder.Services.AddScoped<IFixedPenalty, FixedPenalty>();
+
+builder.Services.AddScoped<ISurrealDbProvider<Book>, SurrealDbProvider<Book>>();
+builder.Services.AddScoped<IBookService, BookService>();
 
 
 var app = builder.Build();
