@@ -22,12 +22,19 @@ namespace Nexum.Server.Services.Penalty
         }
         public PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest)
         {
+            PenaltyResponse penaltyResponse = new PenaltyResponse();
+
             #region Validation
             if (penaltyRequest == null)
                 throw new ArgumentNullException(nameof(penaltyRequest));
 
             if (penaltyRequest.OutstandingBalance <= 0)
-                throw new ArgumentException("OutstandingBalance must be greater than zero.");
+            {
+                penaltyResponse.PenaltyAmount = 0;
+                return penaltyResponse;
+            }
+
+                    
 
             if (penaltyRequest.DueDate == null)
                 throw new ArgumentException("DueDate must be a valid date.");
@@ -46,7 +53,7 @@ namespace Nexum.Server.Services.Penalty
 
             #endregion
 
-            PenaltyResponse penaltyResponse = new PenaltyResponse();
+            
 
             //Get Penalty Policies By Id (Config Penalty Policies)
             ProductContact PenaltyPolicies = penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID });

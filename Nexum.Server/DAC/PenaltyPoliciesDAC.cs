@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Nexum.Server.DTO;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 
@@ -14,12 +15,16 @@ namespace Nexum.Server.DAC
         {
             // Search for the policy in the mock list by ID
             var policies = GetMockPenaltyPolicies();
+
             var policy = policies.Find(p => p.PenaltyPolicyID == penaltyPoliciesRequest.PenaltyPolicyID);
 
             if (policy == null)
             {
                 throw new KeyNotFoundException($"Penalty policy with ID {penaltyPoliciesRequest.PenaltyPolicyID} not found.");
             }
+
+            //// ใช้ Mapster แมปข้อมูล
+            //return policy.Adapt<PenaltyPolicyDto>();
 
             return new ProductContact
             {
