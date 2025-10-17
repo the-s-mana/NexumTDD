@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Nexum.Server.DTO;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 
