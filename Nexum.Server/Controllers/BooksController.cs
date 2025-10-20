@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc;
 using Nexum.Server.Data;
 using Nexum.Server.Data.Models;
+using Nexum.Server.Models.Book;
 using Nexum.Server.Services;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace Nexum.Server.Controllers;
 
@@ -11,35 +12,59 @@ namespace Nexum.Server.Controllers;
 public class BooksController : ControllerBase
 {
     private readonly IBookService _bookService;
-
-    // 1. รับ IBookService ผ่าน Dependency Injection
     public BooksController(IBookService bookService)
     {
         _bookService = bookService;
     }
 
-    // 2. สร้าง Endpoint สำหรับ "GET" เพื่อดึงข้อมูลทั้งหมด
-    // GET /api/books
+    // Surreal
     [HttpGet]
-    public async Task<IActionResult> GetAllBooks()
+    [Route("GetAllSurreal")]
+    public async Task<IActionResult> GetAllBooksSurreal()
     {
-        var books = await _bookService.GetAllBooksAsync();
-        return Ok(books); // ส่งผลลัพธ์กลับไปเป็น HTTP 200 OK พร้อมข้อมูล JSON
+        var res = await _bookService.GetAllBooksSurrealAsync();
+        return Ok(res);
     }
 
-    // 3. สร้าง Endpoint สำหรับ "POST" เพื่อสร้างข้อมูลใหม่
-    // POST /api/books
     [HttpPost]
-    public async Task<IActionResult> CreateBook([FromBody] Book book)
+    [Route("CreateBookSurreal")]
+    public async Task<IActionResult> CreateBookSurreal(CreateBookRequestDTO book)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        var res = await _bookService.CreateBookSurrealAsync(book);
+        return Ok(res);
+    }
 
-        var createdBook = await _bookService.CreateBookAsync(book);
+    [HttpPut]
+    [Route("UpdateBookSurreal")]
+    public async Task<IActionResult> UpdateBookSurreal(UpdateBookRequestDTO book)
+    {
+        var res = await _bookService.UpdateBookSurrealAsync(book);
+        return Ok(res);
+    }
 
-        // ส่ง HTTP 201 Created พร้อม Location ของ Resource ที่สร้างใหม่
-        return CreatedAtAction(nameof(GetAllBooks), new { id = createdBook.Id.ToString() }, createdBook);
+    // Nexum
+    [HttpGet]
+    [Route("GetAllBooksNexum")]
+    public async Task<IActionResult> GetAllBooksNexum()
+    {
+        var books = await _bookService.GetAllBooksNexumAsync();
+        return Ok(books);
+    }
+
+    [HttpPost]
+    [Route("CreateBookNexum")]
+    public async Task<IActionResult> CreateBookNexum(CreateBookRequestDTO book)
+    {
+        var res = await _bookService.CreateBookNexumAsync(book);
+
+        return Ok(res);
+    }
+
+    [HttpPut]
+    [Route("UpdateBookNexum")]
+    public async Task<IActionResult> UpdateBookNexum(UpdateBookRequestDTO book)
+    {
+        var res = await _bookService.UpdateBookNexumAsync(book);
+        return Ok(res);
     }
 }

@@ -6,30 +6,16 @@ namespace Nexum.Server.Data
 {
     public class IDbProviderFactory
     {
-        /// <summary>
-        /// SurrealDb Provider Factory Base
-        /// </summary>
         public abstract class SurrealDbProviderFactoryBase
         {
-            /// <summary>
-            /// Create db provider for table
-            /// </summary>
-            /// <typeparam name="T"></typeparam>
-            /// <returns></returns>
-            public abstract ISurrealDbProvider<T> Create<T>();
+            public abstract ISurrealDbProvider<TSurrealModel, TNexumModel> Create<TSurrealModel, TNexumModel>();
         }
 
-        /// <summary>
-        /// SurrealDb Provider Factory
-        /// </summary>
         public sealed class SurrealDbProviderFactory : SurrealDbProviderFactoryBase
         {
             private readonly IServiceProvider provider;
             private readonly ISurrealDbClient surrealDbClient;
 
-            /// <summary>
-            /// SurrealDb Provider Factory constructor
-            /// </summary>
             public SurrealDbProviderFactory(IServiceProvider provider,
                 ISurrealDbClient surrealDbClient,
                 IConfiguration configuration)
@@ -53,10 +39,9 @@ namespace Nexum.Server.Data
                     }).Wait();
             }
 
-            /// <inheritdoc />
-            public sealed override ISurrealDbProvider<T> Create<T>()
+            public sealed override ISurrealDbProvider<TSurrealModel, TNexumModel> Create<TSurrealModel, TNexumModel>()
             {
-                var dbprovider = provider?.GetService<ISurrealDbProvider<T>>();
+                var dbprovider = provider?.GetService<ISurrealDbProvider<TSurrealModel, TNexumModel>>();
                 if (dbprovider == null) throw new ArgumentNullException(nameof(dbprovider));
                 return dbprovider;
             }

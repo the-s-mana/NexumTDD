@@ -5,30 +5,23 @@ using SurrealDb.Net.Models.Response;
 
 namespace ManaApi.Services.SurrealDbProvider
 {
-    /// <inheritdoc />
     public class DbProvider<TsurrealModel, TmanaModel> : IDbProvider<TsurrealModel, TmanaModel>
-        where TsurrealModel : /*SurrealDbModelBase*/ Record
-        //where TmanaModel : ManaDbModelBase
+        where TsurrealModel : Record
     {
         private readonly ISurrealDbClient surrealDbClient;
-        /// <inheritdoc />
 
-        public DbProvider(ISurrealDbClient surrealDbClient
-            )
+        public DbProvider(ISurrealDbClient surrealDbClient)
         {
             this.surrealDbClient = surrealDbClient;
         }
 
-        /// <inheritdoc />
         public string Table { get => typeof(TsurrealModel).Name; }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<TsurrealModel>> List(CancellationToken cancellationToken)
         {
             return await surrealDbClient.Select<TsurrealModel>(Table, cancellationToken);
         }
 
-        /// <inheritdoc />
         public async Task<TsurrealModel?> Get(string id, CancellationToken cancellationToken)
         {
             var rd = new RecordIdOfString(Table, id);
@@ -41,18 +34,16 @@ namespace ManaApi.Services.SurrealDbProvider
             return x.Adapt<TmanaModel>();
         }
 
-        /// <inheritdoc />
         public async Task<TsurrealModel?> Get(RecordId id, CancellationToken cancellationToken)
         {
             return await surrealDbClient.Select<TsurrealModel>(id, cancellationToken);
         }
 
-        /// <inheritdoc />
         public async Task<TsurrealModel> Create(TsurrealModel data, CancellationToken cancellationToken)
         {
             return await surrealDbClient.Create(Table, data, cancellationToken);
         }
-        /// <inheritdoc />
+        
         public async Task<TmanaModel> CreateX(TmanaModel data, CancellationToken cancellationToken)
         {
             var srData = data.Adapt<TsurrealModel>();
@@ -60,7 +51,6 @@ namespace ManaApi.Services.SurrealDbProvider
             return createdSrData.Adapt<TmanaModel>();
         }
 
-        /// <inheritdoc />
         public async Task<TsurrealModel> Upsert(TsurrealModel data, CancellationToken cancellationToken)
         {
             return await surrealDbClient.Upsert(data, cancellationToken);
@@ -72,7 +62,6 @@ namespace ManaApi.Services.SurrealDbProvider
             return y.Adapt<TmanaModel>();
         }
 
-        /// <inheritdoc />
         public async Task<TsurrealModel> Update(string id, Dictionary<string, object?> data, CancellationToken cancellationToken)
         {
             var thing = RecordId.From(Table, id);
@@ -86,26 +75,22 @@ namespace ManaApi.Services.SurrealDbProvider
             return data.Adapt<TmanaModel>();
         }
 
-        /// <inheritdoc />
         public async Task<TsurrealModel> Update(RecordId id, Dictionary<string, object?> data, CancellationToken cancellationToken)
         {
             return await surrealDbClient.Merge<TsurrealModel>(id, data, cancellationToken);
         }
 
-        /// <inheritdoc />
         public async Task<SurrealDbResponse> Query(FormattableString qry, IReadOnlyDictionary<string, object?>? parameters = default, CancellationToken cancellationToken = default)
         {
             return await surrealDbClient.RawQuery(qry.ToString(), parameters, cancellationToken);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<Ts>?> Query<Ts>(FormattableString qry, IReadOnlyDictionary<string, object?>? parameters = default, CancellationToken cancellationToken = default)
         {
             var documents = await surrealDbClient.RawQuery(qry.ToString(), parameters, cancellationToken);
             return documents.GetValue<IEnumerable<Ts>?>(0);
         }
 
-        /// <inheritdoc />
         public async Task<Ts?> QueryOne<Ts>(FormattableString qry, IReadOnlyDictionary<string, object?>? parameters = default, CancellationToken cancellationToken = default)
         {
             var documents = await surrealDbClient.RawQuery(qry.ToString(), parameters, cancellationToken);
@@ -113,7 +98,6 @@ namespace ManaApi.Services.SurrealDbProvider
             return list.FirstOrDefault();
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<TmanaModel>> Select(FormattableString qry, IReadOnlyDictionary<string, object?>? parameters = default, CancellationToken cancellationToken = default)
         {
             var data = (await surrealDbClient.RawQuery(qry.ToString(), parameters, cancellationToken)).GetValue<IEnumerable<TsurrealModel>>(0);
@@ -121,7 +105,6 @@ namespace ManaApi.Services.SurrealDbProvider
             return result;
         }
 
-        /// <inheritdoc />
         public async Task<TmanaModel> SelectOne(FormattableString qry, IReadOnlyDictionary<string, object?>? parameters = default, CancellationToken cancellationToken = default)
         {
             var data = (await surrealDbClient.RawQuery(qry.ToString(), parameters, cancellationToken)).GetValue<IEnumerable<TsurrealModel>>(0).FirstOrDefault();

@@ -1,10 +1,14 @@
-using Nexum.Server.Data;
+﻿using Mapster;
+using MapsterMapper;
 using Nexum.Server.DAC;
+using Nexum.Server.Data;
+using Nexum.Server.Data.Models;
+using Nexum.Server.Models.Book;
 using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
 using Nexum.Server.Utils;
 using SurrealDb.Net;
-using Nexum.Server.Data.Models;
+using System.Reflection;
 using static Nexum.Server.Data.IDbProviderFactory;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,7 +40,19 @@ builder.Services.AddScoped<IFixedPenalty, FixedPenalty>();
 // Register DateTimeUtils
 builder.Services.AddScoped<IDateTimeUtils, DateTimeUtils>();
 
-builder.Services.AddScoped<ISurrealDbProvider<Book>, SurrealDbProvider<Book>>();
+builder.Services.AddMapster();
+
+// --- ตั้งค่า Mapster ---
+var typeAdapterConfig = TypeAdapterConfig.GlobalSettings;
+
+// สั่งให้ Mapster สแกนหาคลาสที่ implement IRegister ทั้งหมดในโปรเจกต์
+typeAdapterConfig.Scan(Assembly.GetExecutingAssembly());
+
+// ลงทะเบียน config และ mapper เพื่อใช้งานผ่าน Dependency Injection
+builder.Services.AddSingleton(typeAdapterConfig);
+builder.Services.AddScoped<IMapper, ServiceMapper>();
+
+builder.Services.AddScoped<ISurrealDbProvider<Book, BookResponseDTO>, SurrealDbProvider<Book, BookResponseDTO>>();
 var surrealDbConfig = builder.Configuration.GetSection("SurrealDbSettings");
 builder.Services.AddSurreal(x => x.FromConnectionString(surrealDbConfig["ConnectionString"]), ServiceLifetime.Scoped);
 builder.Services.AddTransient<IBookService, BookService>();
