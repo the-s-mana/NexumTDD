@@ -31,7 +31,7 @@ namespace Nexum.Tests
            new ProductContact
             {
                 PenaltyPolicyID = 1,
-                PenaltyPolicyx = new PenaltyPolicy
+                PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Daily",
                     PenaltyFixed = 100m,
@@ -43,7 +43,7 @@ namespace Nexum.Tests
             new ProductContact
             {
                 PenaltyPolicyID = 2,
-                PenaltyPolicyx = new PenaltyPolicy
+                PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Fixed",
                     PenaltyFixed = 200m,
@@ -52,7 +52,7 @@ namespace Nexum.Tests
             new ProductContact
             {
                 PenaltyPolicyID = 3,
-                PenaltyPolicyx = new PenaltyPolicy
+                PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Percentage",
                     PenaltyRate = 2.5m,
@@ -63,7 +63,7 @@ namespace Nexum.Tests
             new ProductContact
             {
                 PenaltyPolicyID = 4,
-                PenaltyPolicyx = new PenaltyPolicy
+                PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Daily",
                     PenaltyFixed = 200m,

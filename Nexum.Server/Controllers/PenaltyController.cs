@@ -25,15 +25,16 @@ namespace Nexum.Server.Controllers
             return penalty.GetPenalty(penaltyRequest);
         }
         [HttpGet("GetAllPenaltyPolicies")]
-        public async Task<List<PenaltyPolicy>> GetAllPenaltyPolicies()
+        public async Task<List<PenaltyPolicyDTO>> GetAllPenaltyPolicies()
         {
             return await penalty.GetAllPolicies();
         }
-        [HttpPost("CreatePenaltyPolicies")]
-        public async Task<PenaltyPolicy> CreatePenaltyPolicies(PenaltyPolicy productContact)
+        [HttpGet("GetPenaltyPolicyById/{id}")]
+        public  async Task<PenaltyPolicyDTO> GetPenaltyPolicyById(string id)
         {
-            return await penalty.CreatePolicies(productContact);
+            return await penalty.GetPolicyById(id);
         }
+
 
 
     }

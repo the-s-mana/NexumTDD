@@ -9,28 +9,24 @@ namespace Nexum.Server.DAC
 {
     public interface IPenaltyPoliciesDAC
     {
-        Task<PenaltyPolicy> CreateProductContact(PenaltyPolicy productContact);
-        Task<List<PenaltyPolicy>> GetAllProductContactAsync();
         ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
+        Task<List<PenaltyPolicyDTO>> GetAllProductContactAsync();
+        Task<PenaltyPolicyDTO> GetPenaltyPolicyByIdAsync(string id);
     }
     public class PenaltyPoliciesDAC : IPenaltyPoliciesDAC
     {
         SurrealDbProviderFactoryBase surrealDbProviderFactory;
-        ISurrealDbProvider<PenaltyPolicy> penaltyPolicyDbProvider;
+        ISurrealDbProvider<PenaltyPolicy,PenaltyPolicyDTO> penaltyPolicyDbProvider;
         public PenaltyPoliciesDAC(SurrealDbProviderFactoryBase surrealDbProviderFactory)
         {
             this.surrealDbProviderFactory = surrealDbProviderFactory;
-            penaltyPolicyDbProvider = surrealDbProviderFactory.Create<PenaltyPolicy>();
+            penaltyPolicyDbProvider = surrealDbProviderFactory.Create<PenaltyPolicy,PenaltyPolicyDTO>();
         }
 
         public ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
         {
             // Search for the policy in the mock list by ID
             var policies = GetMockPenaltyPolicies();
-
-            
-
-            
 
             var policy = policies.Find(p => p.PenaltyPolicyID == penaltyPoliciesRequest.PenaltyPolicyID);
 
@@ -45,7 +41,7 @@ namespace Nexum.Server.DAC
             return new ProductContact()
             {
                 PenaltyPolicyID = policy.PenaltyPolicyID,
-                PenaltyPolicyx = new PenaltyPolicy
+                PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PolicyName = policy.PenaltyPolicyx.PolicyName,
                     PenaltyType = policy.PenaltyPolicyx.PenaltyType,
@@ -67,7 +63,7 @@ namespace Nexum.Server.DAC
                 new ProductContact
                 {
                     PenaltyPolicyID = 1,
-                    PenaltyPolicyx = new PenaltyPolicy
+                    PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Standard Daily Penalty",
                         PenaltyType = "Daily",
@@ -80,7 +76,7 @@ namespace Nexum.Server.DAC
                 new ProductContact
                 {
                     PenaltyPolicyID = 2,
-                    PenaltyPolicyx = new PenaltyPolicy
+                    PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Fixed Penalty",
                         PenaltyType = "Fixed",
@@ -91,7 +87,7 @@ namespace Nexum.Server.DAC
                 new ProductContact
                 {
                     PenaltyPolicyID = 3,
-                    PenaltyPolicyx = new PenaltyPolicy
+                    PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Percentage Penalty",
                         PenaltyType = "Percentage",
@@ -104,7 +100,7 @@ namespace Nexum.Server.DAC
                 new ProductContact
                 {
                     PenaltyPolicyID = 4,
-                    PenaltyPolicyx = new PenaltyPolicy
+                    PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Special Daily Penalty",
                         PenaltyType = "Daily",
@@ -118,19 +114,16 @@ namespace Nexum.Server.DAC
             };
         }
 
-        public async Task<List<PenaltyPolicy>> GetAllProductContactAsync()
+        public async Task<List<PenaltyPolicyDTO>> GetAllProductContactAsync()
         {
-            var policies = await penaltyPolicyDbProvider.List();
+            var policies = await penaltyPolicyDbProvider.ListAsNexumModelAsync();
             return policies.ToList();
         }
-
-        public async Task<PenaltyPolicy> CreateProductContact(PenaltyPolicy penaltyPolicy)
+        public async Task<PenaltyPolicyDTO> GetPenaltyPolicyByIdAsync(string id)
         {
-            if (penaltyPolicy == null)
-                throw new ArgumentNullException(nameof(penaltyPolicy));
-
-            var createdProductContact = await penaltyPolicyDbProvider.Create(penaltyPolicy);
-            return createdProductContact;
+            var policy = await penaltyPolicyDbProvider.GetByIdAsNexumModelAsync(id);
+            return policy;
         }
+
     }
 }
