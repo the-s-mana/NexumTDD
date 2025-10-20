@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 using Nexum.Server.Services.Penalty;
@@ -23,7 +24,16 @@ namespace Nexum.Server.Controllers
         {
             return penalty.GetPenalty(penaltyRequest);
         }
-
+        [HttpGet("GetAllPenaltyPolicies")]
+        public async Task<List<PenaltyPolicy>> GetAllPenaltyPolicies()
+        {
+            return await penalty.GetAllPolicies();
+        }
+        [HttpPost("CreatePenaltyPolicies")]
+        public async Task<PenaltyPolicy> CreatePenaltyPolicies(PenaltyPolicy productContact)
+        {
+            return await penalty.CreatePolicies(productContact);
+        }
 
 
     }

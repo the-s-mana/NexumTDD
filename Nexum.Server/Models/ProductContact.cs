@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Nexum.Server.Models.Penalty;
 
 namespace Nexum.Server.Models
 {
@@ -26,15 +28,14 @@ namespace Nexum.Server.Models
         #endregion
 
         #region Penalty
-        public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
-        public string PolicyName { get; set; } //ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
-        public string PenaltyType { get; set; } // ประเภทการคำนวณ ('PercentDaily', 'FixedDaily', 'PercentMonthly', FixedMonthly)
-        public decimal PenaltyRate { get; set; } // อัตราที่ใช้คำนวณ (อาจเป็นบาท/วัน หรือ %)
-        public decimal PenaltyFixed { get; set; } // ค่าปรับแบบคงที่ (สำหรับประเภท 'Fixed')
-        public decimal PenaltyMax { get; set; } // เพดานค่าปรับต่อครั้ง (เช่น 300 บาท)
-        public decimal TotalCap { get; set; } // เพดานค่าปรับสะสมสูงสุด (เช่น 1000 บาท)
-        public int PenaltyFreePeriodDays { get; set; } // จำนวนวันผ่อนผันหลัง Due Date
-        public decimal MinimumPaymentRate { get; set; } // อัตราชำระขั้นต่ำ (%)
+
+        // 1. ยังคงเก็บ ID ของ Policy ไว้เป็น Foreign Key
+        public int PenaltyPolicyID { get; set; }
+
+        // 2. เพิ่ม Navigation Property เพื่อให้เข้าถึง Object ของ Policy ได้โดยตรง
+        [ForeignKey("PenaltyPolicyID")]
+        public virtual PenaltyPolicy PenaltyPolicyx { get; set; }
+
         #endregion
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Moq;
+using Nexum.Server.DAC;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 using Nexum.Server.Services.Penalty;
@@ -30,33 +31,46 @@ namespace Nexum.Tests
            new ProductContact
             {
                 PenaltyPolicyID = 1,
-                PenaltyType = "Daily",
-                PenaltyFixed = 100m,
-                TotalCap = 1000m,
-                PenaltyFreePeriodDays = 5
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PenaltyType = "Daily",
+                    PenaltyFixed = 100m,
+                    TotalCap = 1000m,
+                    PenaltyFreePeriodDays = 5
+                },
+
             },
             new ProductContact
             {
                 PenaltyPolicyID = 2,
-                PenaltyType = "Fixed",
-                PenaltyFixed = 200m,
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PenaltyType = "Fixed",
+                    PenaltyFixed = 200m,
+                }
             },
             new ProductContact
             {
                 PenaltyPolicyID = 3,
-                PenaltyType = "Percentage",
-                PenaltyRate = 2.5m,
-                PenaltyMax = 300m,
-                PenaltyFreePeriodDays = 5
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PenaltyType = "Percentage",
+                    PenaltyRate = 2.5m,
+                    PenaltyMax = 300m,
+                    PenaltyFreePeriodDays = 5
+                }
             },
             new ProductContact
             {
                 PenaltyPolicyID = 4,
-                PenaltyType = "Daily",
-                PenaltyFixed = 200m,
-                PenaltyMax = 400m,
-                TotalCap = 1200m,
-                PenaltyFreePeriodDays = 2
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PenaltyType = "Daily",
+                    PenaltyFixed = 200m,
+                    PenaltyMax = 400m,
+                    TotalCap = 1200m,
+                    PenaltyFreePeriodDays = 2
+                }
             },
         };
         #endregion
@@ -124,7 +138,7 @@ namespace Nexum.Tests
             }
         )
     };
-            
+
             // 4) ไม่คิดปรับ: ไม่เกินกำหนด + จ่ายถึงขั้นต่ำ
             yield return new object[] {
         new Case(
@@ -144,7 +158,7 @@ namespace Nexum.Tests
             }
         )
     };
-    }
+        }
         #endregion
         #region NormalCases Test
         [Theory(DisplayName = "คำนวณค่าปรับตามสัญญา")]
@@ -156,7 +170,7 @@ namespace Nexum.Tests
 
             var policy = _policyList.Single(p => p.PenaltyPolicyID == c.Request.PenaltyPolicyID);
 
-            switch (policy.PenaltyType)
+            switch (policy.PenaltyPolicyx.PenaltyType)
             {
                 case "Daily":
                     _daily.Setup(d => d.Calculate(It.IsAny<PenaltyContext>()))
@@ -173,7 +187,7 @@ namespace Nexum.Tests
                                    Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
                     break;
                 default:
-                    throw new NotImplementedException($"Penalty type '{policy.PenaltyType}' is not implemented.");
+                    throw new NotImplementedException($"Penalty type '{policy.PenaltyPolicyx.PenaltyType}' is not implemented.");
             }
 
             //Act
@@ -188,7 +202,7 @@ namespace Nexum.Tests
             Console.WriteLine($"[ACT] UserId={result.UserId}," +
                                 $"Outstanding={result.OutstandingBalance}, Min={result.MinimumPayment}, " +
                               $"Penalty={result.PenaltyAmount}");
-            Console.WriteLine($"Policy={policy.PenaltyType}, " +
+            Console.WriteLine($"Policy={policy.PenaltyPolicyx.PenaltyType}, " +
                           $"Policy Id={policy.PenaltyPolicyID}");
             Assert.NotNull(result);
             Assert.Equal(c.Expected.UserId, result.UserId);
@@ -199,7 +213,7 @@ namespace Nexum.Tests
             var minPayment = c.Request.OutstandingBalance * 0.1m;
             var isOverdue = c.Request.DueDate < now;
             var underMin = c.Request.PaymentAmount < minPayment;
-            var graceDays = policy.PenaltyFreePeriodDays;   // หรือ GracePeriodDays ตามโมเดลจริง
+            var graceDays = policy.PenaltyPolicyx.PenaltyFreePeriodDays;   // หรือ GracePeriodDays ตามโมเดลจริง
             var overdueDays = Math.Max(0, (now - c.Request.DueDate.Date).Days);
             var shouldInvoke = (isOverdue || underMin) && (overdueDays > graceDays);
 
@@ -209,11 +223,11 @@ namespace Nexum.Tests
                 Times.Once());
 
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()),
-                (policy.PenaltyType == "Daily" && shouldInvoke) ? Times.Once() : Times.Never());
+                (policy.PenaltyPolicyx.PenaltyType == "Daily" && shouldInvoke) ? Times.Once() : Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()),
-                (policy.PenaltyType == "Fixed" && shouldInvoke) ? Times.Once() : Times.Never());
+                (policy.PenaltyPolicyx.PenaltyType == "Fixed" && shouldInvoke) ? Times.Once() : Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()),
-                (policy.PenaltyType == "Percentage" && shouldInvoke) ? Times.Once() : Times.Never());
+                (policy.PenaltyPolicyx.PenaltyType == "Percentage" && shouldInvoke) ? Times.Once() : Times.Never());
         }
         #endregion
 
@@ -293,7 +307,7 @@ namespace Nexum.Tests
 
             var policy = _policyList.Single(p => p.PenaltyPolicyID == c.Request.PenaltyPolicyID);
 
-            switch (policy.PenaltyType)
+            switch (policy.PenaltyPolicyx.PenaltyType)
             {
                 case "Daily":
                     _daily.Setup(d => d.Calculate(It.IsAny<PenaltyContext>()))
@@ -310,7 +324,7 @@ namespace Nexum.Tests
                                    Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
                     break;
                 default:
-                    throw new NotImplementedException($"Penalty type '{policy.PenaltyType}' is not implemented.");
+                    throw new NotImplementedException($"Penalty type '{policy.PenaltyPolicyx.PenaltyType}' is not implemented.");
             }
 
             //Act
@@ -326,7 +340,7 @@ namespace Nexum.Tests
             var minPayment = c.Request.OutstandingBalance * 0.1m;
             var isOverdue = c.Request.DueDate < now;
             var underMin = c.Request.PaymentAmount < minPayment;
-            var graceDays = policy.PenaltyFreePeriodDays;   // หรือ GracePeriodDays ตามโมเดลจริง
+            var graceDays = policy.PenaltyPolicyx.PenaltyFreePeriodDays;   // หรือ GracePeriodDays ตามโมเดลจริง
             var overdueDays = Math.Max(0, (now - c.Request.DueDate.Date).Days);
             var shouldInvoke = (isOverdue || underMin) && (overdueDays > graceDays);
 
@@ -336,11 +350,11 @@ namespace Nexum.Tests
                 Times.Once());
 
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()),
-                (policy.PenaltyType == "Daily" && shouldInvoke) ? Times.Once() : Times.Never());
+                (policy.PenaltyPolicyx.PenaltyType == "Daily" && shouldInvoke) ? Times.Once() : Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()),
-                (policy.PenaltyType == "Fixed" && shouldInvoke) ? Times.Once() : Times.Never());
+                (policy.PenaltyPolicyx.PenaltyType == "Fixed" && shouldInvoke) ? Times.Once() : Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()),
-                (policy.PenaltyType == "Percentage" && shouldInvoke) ? Times.Once() : Times.Never());
+                (policy.PenaltyPolicyx.PenaltyType == "Percentage" && shouldInvoke) ? Times.Once() : Times.Never());
         }
         #endregion
 
@@ -370,11 +384,11 @@ namespace Nexum.Tests
             // 3) userId <= 0
             yield return new object[] {
         new PenaltyRequest {
-            UserId = 0, 
+            UserId = 0,
             ActiveStatus = "Active",
-            PenaltyPolicyID = 1, 
+            PenaltyPolicyID = 1,
             OutstandingBalance = 100m,
-            DueDate = now.AddDays(-1), 
+            DueDate = now.AddDays(-1),
             PaymentAmount = 0m
         },
         typeof(ArgumentException)
@@ -382,11 +396,11 @@ namespace Nexum.Tests
             // 4) สถานะบัญชีเป็น null
             yield return new object[] {
         new PenaltyRequest {
-            UserId = 1, 
+            UserId = 1,
             ActiveStatus = null!,
-            PenaltyPolicyID = 1, 
+            PenaltyPolicyID = 1,
             OutstandingBalance = 100m,
-            DueDate = now.AddDays(-1), 
+            DueDate = now.AddDays(-1),
             PaymentAmount = 0m
         },
         typeof(ArgumentException)
@@ -396,9 +410,9 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = "Pause",
-            PenaltyPolicyID = 1, 
+            PenaltyPolicyID = 1,
             OutstandingBalance = 100m,
-            DueDate = now.AddDays(-1), 
+            DueDate = now.AddDays(-1),
             PaymentAmount = 0m
         },
         typeof(ArgumentException)
@@ -406,7 +420,7 @@ namespace Nexum.Tests
             // 6) สถานะบัญชีเป็น Inactive
             yield return new object[] {
         new PenaltyRequest {
-            UserId = 1, 
+            UserId = 1,
             ActiveStatus = "Inactive",
             PenaltyPolicyID = 1,
             OutstandingBalance = 100m,
@@ -420,9 +434,9 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = "Active",
-            PenaltyPolicyID = 1, 
+            PenaltyPolicyID = 1,
             OutstandingBalance = 100m,
-            DueDate = now.AddDays(+1), 
+            DueDate = now.AddDays(+1),
             PaymentAmount = 0m
         },
         typeof(InvalidOperationException)
@@ -432,9 +446,9 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = "Active",
-            PenaltyPolicyID = 999, 
+            PenaltyPolicyID = 999,
             OutstandingBalance = 100m,
-            DueDate = now.AddDays(-1), 
+            DueDate = now.AddDays(-1),
             PaymentAmount = 0m
         },
         typeof(InvalidOperationException)

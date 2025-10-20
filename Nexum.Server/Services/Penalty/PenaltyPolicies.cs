@@ -8,6 +8,8 @@ namespace Nexum.Server.Services.Penalty
     {
         // Define methods related to penalty policies here
         ProductContact penaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
+        Task<List<PenaltyPolicy>> GetAllPenaltyPolicies();
+        Task<PenaltyPolicy> CreatePolicies(PenaltyPolicy productContact);
     }
     public class PenaltyPolicies : IPenaltyPolicies
     {
@@ -16,6 +18,17 @@ namespace Nexum.Server.Services.Penalty
         { 
             this.penaltyPoliciesDAC = penaltyPoliciesDAC;
         }
+
+        public async Task<PenaltyPolicy> CreatePolicies(PenaltyPolicy penaltyPolicy)
+        {
+            return await penaltyPoliciesDAC.CreateProductContact(penaltyPolicy);
+        }
+
+        public async Task<List<PenaltyPolicy>> GetAllPenaltyPolicies()
+        {
+            return await penaltyPoliciesDAC.GetAllProductContactAsync();
+        }
+
         public ProductContact penaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
         {
             return penaltyPoliciesDAC.GetPenaltyPolicies(penaltyPoliciesRequest);

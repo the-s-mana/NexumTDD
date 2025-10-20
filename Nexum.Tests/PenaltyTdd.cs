@@ -1,4 +1,5 @@
 ﻿using Moq;
+using Nexum.Server.DAC;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 using Nexum.Server.Services.Penalty;
@@ -54,43 +55,55 @@ namespace Nexum.Tests
             new ProductContact
             {
                 PenaltyPolicyID = 1,
-                PolicyName = "Percentage Penalty",
-                PenaltyType = "Percentage",
-                PenaltyRate = 10m, //10%
-                PenaltyMax = 1000.0m,
-                PenaltyFreePeriodDays = 0,
-                MinimumPaymentRate = 10.0m, // 10%
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PolicyName = "Percentage Penalty",
+                    PenaltyType = "Percentage",
+                    PenaltyRate = 10m, //10%
+                    PenaltyMax = 1000.0m,
+                    PenaltyFreePeriodDays = 0,
+                    MinimumPaymentRate = 10.0m, // 10%
+                }
             },
             new ProductContact
             {
                 PenaltyPolicyID = 2,
-                PolicyName = "Percentage Penalty",
-                PenaltyType = "Percentage",
-                PenaltyRate = 10m, //10%
-                PenaltyMax = 600.0m,
-                PenaltyFreePeriodDays = 0,
-                MinimumPaymentRate = 10.0m, // 10%
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PolicyName = "Percentage Penalty",
+                    PenaltyType = "Percentage",
+                    PenaltyRate = 10m, //10%
+                    PenaltyMax = 600.0m,
+                    PenaltyFreePeriodDays = 0,
+                    MinimumPaymentRate = 10.0m, // 10%
+                }
             },
             new ProductContact
             {
                 PenaltyPolicyID = 3,
-                PolicyName = "Percentage Penalty",
-                PenaltyType = "Percentage",
-                PenaltyRate = 10m, //10%
-                PenaltyMax = 300.0m,
-                PenaltyFreePeriodDays = 0,
-                MinimumPaymentRate = 10.0m, // 10%
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PolicyName = "Percentage Penalty",
+                    PenaltyType = "Percentage",
+                    PenaltyRate = 10m, //10%
+                    PenaltyMax = 300.0m,
+                    PenaltyFreePeriodDays = 0,
+                    MinimumPaymentRate = 10.0m, // 10%
+                }
             },
             new ProductContact
             {
                 PenaltyPolicyID = 4,
-                PolicyName = "Special Daily Penalty",
-                PenaltyType = "Daily",
-                PenaltyFixed = 200.0m,
-                PenaltyMax = 400.0m,
-                TotalCap = 1200.0m,
-                PenaltyFreePeriodDays = 2,
-                MinimumPaymentRate = 10.0m, // 10%
+                PenaltyPolicyx = new PenaltyPolicy
+                {
+                    PolicyName = "Special Daily Penalty",
+                    PenaltyType = "Daily",
+                    PenaltyFixed = 200.0m,
+                    PenaltyMax = 400.0m,
+                    TotalCap = 1200.0m,
+                    PenaltyFreePeriodDays = 2,
+                    MinimumPaymentRate = 10.0m, // 10%
+                }
             },
         };
         #endregion
@@ -98,7 +111,7 @@ namespace Nexum.Tests
         private decimal CalculateMinimumPayment(decimal outstandingBalance, int penaltyPolicyID)
         {
             var policy = _policyList.Single(x => x.PenaltyPolicyID == penaltyPolicyID);
-            return outstandingBalance * (policy.MinimumPaymentRate / 100);
+            return outstandingBalance * (policy.PenaltyPolicyx.MinimumPaymentRate / 100);
         }
 
         #region Normal case
