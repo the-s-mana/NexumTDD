@@ -116,8 +116,8 @@ public sealed class SurrealDbProvider<TSurrealModel, TNexumModel> : ISurrealDbPr
     }
 
     public async Task<IEnumerable<TNexumModel>> RawQueryNexum<TNexumModel>(
-        string sql, 
-        IReadOnlyDictionary<string, object?>? parameters = default, 
+        string sql,
+        IReadOnlyDictionary<string, object?>? parameters = default,
         CancellationToken cancellationToken = default)
     {
         var data = (await _surrealDbClient.RawQuery(sql, parameters, cancellationToken)).GetValue<IEnumerable<TSurrealModel>>(0);

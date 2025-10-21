@@ -26,26 +26,26 @@ namespace Nexum.Server.Services
 
         public BillingResponse ProcessAndCalculateBill(BillingRequest billingRequest)
         {
-            // ดึงข้อมูลกระเป๋าสินเชื่อ และ สัญญาสินเชื่อ
-            CreditWallet creditWallet = _creditWalletDAC.GetCreditWallet(billingRequest.CreditWalletId);
-            ProductContact productContact = _productContactDAC.GetProductContact(billingRequest.CreditWalletId);
+            //// ดึงข้อมูลกระเป๋าสินเชื่อ และ สัญญาสินเชื่อ
+            //CreditWallet creditWallet = _creditWalletDAC.GetCreditWallet(billingRequest.CreditWalletId);
+            //ProductContact productContact = _productContactDAC.GetProductContact(billingRequest.CreditWalletId);
 
-            // เงินต้นคงเหลือมากกว่า 0
-            if (creditWallet.PrincipalBalance > 0)
-            {
-                // คำนวณค่าปรับ
+            //// เงินต้นคงเหลือมากกว่า 0
+            //if (creditWallet.PrincipalBalance > 0)
+            //{
+            //    // คำนวณค่าปรับ
 
-                // คำนวณดอกเบี้ย
-                CalculateInterestRequest calculateInterestRequest = new CalculateInterestRequest()
-                {
-                    PrincipalBalance = creditWallet.PrincipalBalance,
-                    InterestRate = productContact.InterestRate,
-                    InterestType = productContact.InterestType,
-                    InterestFreePeriodDays = productContact.InterestFreePeriodDays,
-                    MaxInterestAmount = productContact.MaxInterestRatePerBilling
-                };
-                CalculateInterestResponse calculateInterestResponse = _interestService.CalculateInterest(calculateInterestRequest);
-            }
+            //    // คำนวณดอกเบี้ย
+            //    CalculateInterestRequest calculateInterestRequest = new CalculateInterestRequest()
+            //    {
+            //        PrincipalBalance = creditWallet.PrincipalBalance,
+            //        InterestRate = productContact.InterestRate,
+            //        InterestType = productContact.InterestType,
+            //        InterestFreePeriodDays = productContact.InterestFreePeriodDays,
+            //        MaxInterestAmount = productContact.MaxInterestRatePerBilling
+            //    };
+            //    CalculateInterestResponse calculateInterestResponse = _interestService.CalculateInterest(calculateInterestRequest);
+            //}
 
             return new BillingResponse();
         }

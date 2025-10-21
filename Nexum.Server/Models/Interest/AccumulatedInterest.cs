@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Nexum.Server.Models
 {
-    public class AccumulatedInterest : BaseEntity
+    public class AccumulatedInterest : BaseEntityDTO
     {
         [Key]
         public int AccumulatedInterestId { get; set; }  // รหัสดอกเบี้ยสะสม

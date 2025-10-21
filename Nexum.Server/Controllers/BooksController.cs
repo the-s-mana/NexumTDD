@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Nexum.Server.Data;
 using Nexum.Server.Data.Models;
 using Nexum.Server.Models.Book;
+using Nexum.Server.Models.CreditWallet;
 using Nexum.Server.Services;
 using System.ComponentModel;
 using static System.Reflection.Metadata.BlobBuilder;
@@ -13,9 +14,11 @@ namespace Nexum.Server.Controllers;
 public class BooksController : ControllerBase
 {
     private readonly IBookService _bookService;
-    public BooksController(IBookService bookService)
+    private readonly IWalletService _walletService;
+    public BooksController(IBookService bookService, IWalletService walletService)
     {
         _bookService = bookService;
+        _walletService = walletService;
     }
 
     // Surreal

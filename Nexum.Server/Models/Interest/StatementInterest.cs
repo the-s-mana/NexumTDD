@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Nexum.Server.Models
 {
-    public class InterestTransaction : BaseEntity
+    public class InterestTransaction : BaseEntityDTO
     {
         [Key]
         public int InterestTransactionId { get; set; } // รหัสรายการดอกเบี้ย (Statement Interest Id)

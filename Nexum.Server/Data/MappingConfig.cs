@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Nexum.Server.Data.Models;
 using Nexum.Server.Extensions;
 using Nexum.Server.Models.Book;
+using Nexum.Server.Models.CreditWallet;
 using SurrealDb.Net.Models;
 
 namespace Nexum.Server.Data
@@ -17,14 +18,15 @@ namespace Nexum.Server.Data
                 .Map(dest => dest.Id, src => src.Id == null ? null : src.Id.GetId())
                 .Map(dest => dest.StoreId, src => src.StoreId == null ? null : src.StoreId.GetId());
 
-            //config.NewConfig<CreateBookRequestDTO, Book>()
-            //.Map(dest => dest.StoreId, src => src.StoreId.StringToRecordId<Book>());
-
             config.NewConfig<BookResponseDTO, Book>()
                 .Map(dest => dest.Id, src => src.Id.StringToRecordId<Book>())
                 .Map(dest => dest.StoreId, src => src.StoreId.StringToRecordId<Store>());
+
+            config.NewConfig<CreditWallet, WalletResponseDTO>()
+                .Map(dest => dest.Id, src => src.Id == null ? null : src.Id.GetId());
+
+            config.NewConfig<WalletResponseDTO, CreditWallet>()
+                .Map(dest => dest.Id, src => src.Id.StringToRecordId<CreditWallet>());
         }
-
-
     }
 }

@@ -1,10 +1,13 @@
 ﻿
 using Mapster;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Nexum.Server.DAC;
 using Nexum.Server.Data;
 using Nexum.Server.Data.Models;
 using Nexum.Server.Extensions;
 using Nexum.Server.Models.Book;
+using Nexum.Server.Models.CreditWallet;
 using SurrealDb.Net.Models;
 using System.Text;
 using static Nexum.Server.Data.IDbProviderFactory;
@@ -36,14 +39,12 @@ public interface IBookService
 public class BookService : IBookService
 {
     private readonly ISurrealDbProvider<Book, BookResponseDTO> _bookDbProvider;
-    private readonly SurrealDbProviderFactoryBase _surrealDbProviderFactory;
     private readonly IMapper _mapper;
 
     public BookService(ISurrealDbProvider<Book, BookResponseDTO> bookDbProvider
         , SurrealDbProviderFactoryBase surrealDbProviderFactory
         , IMapper mapper)
     {
-        _surrealDbProviderFactory = surrealDbProviderFactory;
         _bookDbProvider = surrealDbProviderFactory.Create<Book, BookResponseDTO>();
         _mapper = mapper;
     }
