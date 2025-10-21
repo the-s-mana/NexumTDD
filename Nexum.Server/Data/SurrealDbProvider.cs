@@ -17,7 +17,7 @@ namespace Nexum.Server.Data
         }
         public string Table { get => typeof(TsurrealModel).Name; }
 
-
+        #region ListAsync
         public async Task<IEnumerable<TsurrealModel>> ListAsync(CancellationToken cancellationToken)
         {
             var results = await surrealDbClient.Select<TsurrealModel>(Table, cancellationToken);
@@ -33,6 +33,9 @@ namespace Nexum.Server.Data
             var entities = await ListAsync(cancellationToken);
             return entities.Adapt<IEnumerable<TnexumModel>>(); // ใช้ Mapster แมป
         }
+        #endregion
+
+        #region GetById
         public async Task<TsurrealModel?> GetById(string id, CancellationToken cancellationToken = default)
         {
             // Use RecordId.From to convert string id to RecordId
@@ -52,16 +55,20 @@ namespace Nexum.Server.Data
             var entities = await GetById(id);
             return entities.Adapt<TnexumModel>(); // ใช้ Mapster แมป
         }
+        #endregion
 
-
-
-
-
+        #region Create
         //public async Task<TsurrealModel> Create(TsurrealModel entity, CancellationToken cancellationToken = default)
         //{
         //    var result = await surrealDbClient.Create<TsurrealModel>(Table, entity, cancellationToken);
         //    return result;
         //}
+        
+
+
+        #endregion
+
+
 
 
 
