@@ -17,14 +17,14 @@ namespace Nexum.Server.Data
                 .Map(dest => dest.Id, src => src.Id == null ? null : src.Id.GetId())
                 .Map(dest => dest.StoreId, src => src.StoreId == null ? null : src.StoreId.GetId());
 
-            config.NewConfig<CreateBookRequestDTO, Book>()
-            .Map(dest => dest.StoreId, src => src.StoreId.StringToRecordId<Book>());
+            //config.NewConfig<CreateBookRequestDTO, Book>()
+            //.Map(dest => dest.StoreId, src => src.StoreId.StringToRecordId<Book>());
 
             config.NewConfig<BookResponseDTO, Book>()
-                .Map(dest => dest.Id, src => src.StoreId.StringToRecordId<Book>())
-                .Map(dest => dest.StoreId, src => src.StoreId.StringToRecordId<Book>());
+                .Map(dest => dest.Id, src => src.Id.StringToRecordId<Book>())
+                .Map(dest => dest.StoreId, src => src.StoreId.StringToRecordId<Store>());
         }
 
-        
+
     }
 }

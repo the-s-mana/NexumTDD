@@ -60,7 +60,7 @@ public class BookService : IBookService
             Title = creatRequest.Title,
             Author = creatRequest.Author,
             PublishYear = creatRequest.PublishYear,
-            StoreId = RecordId.From(nameof(Book), creatRequest.StoreId),
+            StoreId = RecordId.From(nameof(Store), creatRequest.StoreId),
         };
 
         var res = await _bookDbProvider.CreateSurreal(create);

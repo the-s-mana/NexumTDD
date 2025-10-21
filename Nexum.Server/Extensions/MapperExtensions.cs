@@ -11,7 +11,7 @@ namespace Nexum.Server.Extensions
                 return null;
             }
 
-            var tableName = nameof(T);
+            var tableName = typeof(T).Name;
 
             return RecordId.From(tableName, recordIdString);
         }

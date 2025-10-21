@@ -4,17 +4,17 @@ using System.ComponentModel.DataAnnotations;
 namespace Nexum.Server.Models.Book;
 public class UpdateBookRequestDTO
 {
-    [DefaultValue("2tg9soxbn9nkgx0lclj6")]
+    [DefaultValue("")]
     public string Id { get; set; }
     [Required]
-    [DefaultValue("test1")]
+    [DefaultValue("test999")]
     public string Title { get; set; }
 
     [Required]
-    [DefaultValue("test1")]
+    [DefaultValue("test999")]
     public string Author { get; set; }
     [Required]
-    [DefaultValue(10)]
+    [DefaultValue(999)]
     public int PublishYear { get; set; }
  
 }

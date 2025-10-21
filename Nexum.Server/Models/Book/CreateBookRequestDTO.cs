@@ -14,6 +14,6 @@ public class CreateBookRequestDTO
     [Required]
     [DefaultValue(10)]
     public int PublishYear { get; set; }
-    [DefaultValue("Store:ohk845qxa6pmmtckn3xk")]
+    [DefaultValue("ohk845qxa6pmmtckn3xk")]
     public string? StoreId { get; set; }
 }
