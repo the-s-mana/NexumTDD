@@ -16,5 +16,7 @@ public class UpdateBookRequestDTO
     [Required]
     [DefaultValue(999)]
     public int PublishYear { get; set; }
- 
+    [DefaultValue("ohk845qxa6pmmtckn3xk")]
+    public string StoreId { get; set; }
+
 }
