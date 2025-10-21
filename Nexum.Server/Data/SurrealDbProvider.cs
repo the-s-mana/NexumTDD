@@ -2,6 +2,7 @@
 using SurrealDb.Net;
 using SurrealDb.Net.Models;
 using SurrealDb.Net.Models.Auth;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Nexum.Server.Data
 {
@@ -17,62 +18,45 @@ namespace Nexum.Server.Data
         }
         public string Table { get => typeof(TsurrealModel).Name; }
 
-        #region ListAsync
-        public async Task<IEnumerable<TsurrealModel>> ListAsync(CancellationToken cancellationToken)
-        {
-            var results = await surrealDbClient.Select<TsurrealModel>(Table, cancellationToken);
-            // ตรวจสอบค่าของ Id ใน results
-            foreach (var item in results)
-            {
-                Console.WriteLine(item.Id); // หรือ debug ดูค่า
-            }
-            return results;
-        }
         public async Task<IEnumerable<TnexumModel>> ListAsNexumModelAsync(CancellationToken cancellationToken = default)
         {
-            var entities = await ListAsync(cancellationToken);
+            var entities = await surrealDbClient.Select<TsurrealModel>(Table, cancellationToken);
             return entities.Adapt<IEnumerable<TnexumModel>>(); // ใช้ Mapster แมป
-        }
-        #endregion
-
-        #region GetById
-        public async Task<TsurrealModel?> GetById(string id, CancellationToken cancellationToken = default)
-        {
-            // Use RecordId.From to convert string id to RecordId
-            RecordId recordId = RecordId.From(Table, id);
-
-            var result = await surrealDbClient.Select<TsurrealModel>(recordId, cancellationToken);
-
-            if (result == null)
-            {
-                return null;
-            }
-
-            return result;
         }
         public async Task<TnexumModel> GetByIdAsNexumModelAsync(string id, CancellationToken cancellationToken = default)
         {
-            var entities = await GetById(id);
+            RecordId recordId = RecordId.From(Table, id);
+            var entities = await surrealDbClient.Select<TsurrealModel>(recordId, cancellationToken);
             return entities.Adapt<TnexumModel>(); // ใช้ Mapster แมป
         }
-        #endregion
-
-        #region Create
-        //public async Task<TsurrealModel> Create(TsurrealModel entity, CancellationToken cancellationToken = default)
-        //{
-        //    var result = await surrealDbClient.Create<TsurrealModel>(Table, entity, cancellationToken);
-        //    return result;
-        //}
-        
-
-
-        #endregion
-
-
-
-
-
-
+        public async Task<TnexumModel> CreateAsNexumModelAsync(TnexumModel entity, CancellationToken cancellationToken = default)
+        {
+            var surrealEntity = entity.Adapt<TsurrealModel>();
+            var createdEntity = await surrealDbClient.Create<TsurrealModel>(Table, surrealEntity, cancellationToken);
+            return createdEntity.Adapt<TnexumModel>();
+        }
+        public async Task<TnexumModel> UpdateAsNexumModelAsync(string id, Dictionary<string, object?> data, CancellationToken cancellationToken)
+        {
+            var thing = RecordId.From(Table, id);
+            var x = await surrealDbClient.Merge<TsurrealModel>(thing, data, cancellationToken);
+            return x.Adapt<TnexumModel>();
+        }
+        public async Task<TnexumModel> UpsertAsNexumModelAsync(TnexumModel data, CancellationToken cancellationToken)
+        {
+            var surrealEntity = data.Adapt<TsurrealModel>();
+            var upsertedEntity = await surrealDbClient.Upsert<TsurrealModel>(Table, surrealEntity, cancellationToken);
+            return upsertedEntity.Adapt<TnexumModel>();
+        }
+        public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
+        {
+            RecordId recordId = RecordId.From(Table, id);
+            return await surrealDbClient.Delete(recordId, cancellationToken);
+        }
+        public async Task<IEnumerable<Ts>?> QueryAsync<Ts>(FormattableString qry, IReadOnlyDictionary<string, object?>? parameters = default, CancellationToken cancellationToken = default)
+        {
+            var documents = await surrealDbClient.RawQuery(qry.ToString(), parameters, cancellationToken);
+            return documents.GetValue<IEnumerable<Ts>?>(0);
+        }
 
 
     }

@@ -9,6 +9,7 @@ namespace Nexum.Server.Data.Mapping
     {
         public static void RegisterMappings()
         {
+            // เพิ่ม Mapping: PenaltyPolicy → PenaltyPolicyDTO
             TypeAdapterConfig<PenaltyPolicy, PenaltyPolicyDTO>.NewConfig()
             .Map(dest => dest.Id, src => src.Id.GetId())
             .AfterMapping((src, dest) =>

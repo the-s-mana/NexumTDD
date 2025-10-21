@@ -86,5 +86,43 @@ GET {{Nexum.Server_HostAddress}}/Penalty/GetAllPenaltyPolicies
 Content-Type: application/json
 
 ###
-GET {{Nexum.Server_HostAddress}}/Penalty/GetPenaltyPolicyById/a8gin2xnrl4wu47mwcva
+GET {{Nexum.Server_HostAddress}}/Penalty/GetPenaltyPolicyById/ombnjnrugo5iqsb73amf
 Content-Type: application/json
+
+###
+POST {{Nexum.Server_HostAddress}}/Penalty/CreatePenaltyPolicy
+Content-Type: application/json
+
+{
+    "PenaltyPolicyID" : 4,
+    "PolicyName" : "Percentage Penalty yyy",
+    "PenaltyType" : "Percentage",
+    "PenaltyRate" : 10,
+    "PenaltyFixed" : 0,
+    "PenaltyMax" : 500,
+    "TotalCap" : 800,
+    "PenaltyFreePeriodDays" : 0,
+    "MinimumPaymentRate" : 0
+}
+
+###
+PUT {{Nexum.Server_HostAddress}}/Penalty/UpdatePenaltyPolicy
+Content-Type: application/json
+
+{
+  "id": "ombnjnrugo5iqsb73amf",
+  "PenaltyPolicyID": 4,
+  "PolicyName": "Percentage Penalty 777",
+  "PenaltyType": "Percentage",
+  "PenaltyRate": 10,
+  "PenaltyFixed": 0,
+  "PenaltyMax": 500,
+  "TotalCap": 800,
+  "PenaltyFreePeriodDays": 0,
+  "MinimumPaymentRate": 0
+}
+
+###
+DELETE {{Nexum.Server_HostAddress}}/Penalty/DeletePenaltyPolicy/ombnjnrugo5iqsb73amf
+Content-Type: application/json
+

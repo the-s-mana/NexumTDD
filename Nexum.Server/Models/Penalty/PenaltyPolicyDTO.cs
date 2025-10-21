@@ -6,7 +6,7 @@ namespace Nexum.Server.Models.Penalty
     //DTO
     public class PenaltyPolicyDTO
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
         public string PolicyName { get; set; } // ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
         public string PenaltyType { get; set; } // ประเภทการคำนวณ ('PercentDaily', 'FixedDaily', 'PercentMonthly', 'FixedMonthly')
