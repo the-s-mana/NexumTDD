@@ -2,7 +2,7 @@
 
 namespace Nexum.Server.Data.Models
 {
-    public class PenaltyPolicyData : Record
+    public class PenaltyPolicy : Record
     {
         public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
         public string PolicyName { get; set; } // ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")

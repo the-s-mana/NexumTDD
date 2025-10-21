@@ -1,0 +1,28 @@
+﻿using Mapster;
+using Nexum.Server.Data.Models;
+using Nexum.Server.Models.Penalty;
+using SurrealDb.Net.Models;
+
+namespace Nexum.Server.Data.Mapping
+{
+    public class MapsterConfig
+    {
+        public static void RegisterMappings()
+        {
+            TypeAdapterConfig<PenaltyPolicy, PenaltyPolicyDTO>.NewConfig()
+            .Map(dest => dest.Id, src => src.Id.GetId())
+            .AfterMapping((src, dest) =>
+            {
+                var aaa = src.Id.GetId();
+                var bbb = src.Id.Table;
+            });
+        }
+    }
+    public static class RecordIdExtensions
+    {
+        public static string? GetId(this RecordId id)
+        {
+            return id?.DeserializeId<string>();
+        }
+    }
+}

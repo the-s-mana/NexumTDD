@@ -14,7 +14,9 @@ namespace Nexum.Server.Data
             /// </summary>
             /// <typeparam name="T"></typeparam>
             /// <returns></returns>
-            public abstract ISurrealDbProvider<T> Create<T>();
+            public abstract ISurrealDbProvider<TsurrealModel, TnexumModel> Create<TsurrealModel, TnexumModel>();
+            //public abstract ISurrealDbProvider<TEntity, TDto> Create<TEntity, TDto>();
+            //public abstract ISurrealDbProvider<PenaltyPolicy,PenaltyPolicyDTO> Create<PenaltyPolicy,PenaltyPolicyData>();
         }
 
         /// <summary>
@@ -52,9 +54,9 @@ namespace Nexum.Server.Data
             }
 
             /// <inheritdoc />
-            public sealed override ISurrealDbProvider<T> Create<T>()
+            public sealed override ISurrealDbProvider<TsurrealModel, TnexumModel> Create<TsurrealModel, TnexumModel>()
             {
-                var dbprovider = provider?.GetService<ISurrealDbProvider<T>>();
+                var dbprovider = provider?.GetService<ISurrealDbProvider<TsurrealModel, TnexumModel>>();
                 if (dbprovider == null) throw new ArgumentNullException(nameof(dbprovider));
                 return dbprovider;
             }

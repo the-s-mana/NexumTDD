@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Mapster;
+using Microsoft.Extensions.DependencyInjection;
 using Nexum.Server.DAC;
 using Nexum.Server.Data;
+using Nexum.Server.Data.Mapping;
 using Nexum.Server.Data.Models;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
@@ -8,6 +10,7 @@ using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
 using Nexum.Server.Services.test;
 using SurrealDb.Net;
+using SurrealDb.Net.Models;
 using static Nexum.Server.Data.IDbProviderFactory;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,9 +46,12 @@ builder.Services.AddScoped<IFixedPenalty, FixedPenalty>();
 builder.Services.AddTransient<IBookService, BookService>();
 
 // Register SurrealDb Providers
-builder.Services.AddScoped<ISurrealDbProvider<Book>, SurrealDbProvider<Book>>();
-//builder.Services.AddScoped<ISurrealDbProvider<PenaltyPolicy>, SurrealDbProvider<PenaltyPolicy>>();
+builder.Services.AddScoped<ISurrealDbProvider<PenaltyPolicy, PenaltyPolicyDTO>, SurrealDbProvider<PenaltyPolicy, PenaltyPolicyDTO>>();
 
+
+
+//// Mapster mapping configuration
+MapsterConfig.RegisterMappings();
 
 
 

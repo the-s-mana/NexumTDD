@@ -27,7 +27,7 @@ namespace Nexum.Server.DAC
                 CreateBy = "System",
                 UpdateDate = DateTime.Now,
                 UpdateBy = "System",
-                PenaltyPolicyx = new PenaltyPolicy
+                PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyRate = 10,
                     PenaltyType = "",

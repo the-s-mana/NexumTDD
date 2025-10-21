@@ -34,7 +34,7 @@ namespace Nexum.Server.Models
 
         // 2. เพิ่ม Navigation Property เพื่อให้เข้าถึง Object ของ Policy ได้โดยตรง
         [ForeignKey("PenaltyPolicyID")]
-        public virtual PenaltyPolicy PenaltyPolicyx { get; set; }
+        public virtual PenaltyPolicyDTO PenaltyPolicyx { get; set; }
 
         #endregion
     }

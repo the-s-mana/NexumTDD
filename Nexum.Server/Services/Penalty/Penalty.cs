@@ -6,9 +6,9 @@ namespace Nexum.Server.Services.Penalty
 {
     public interface IPenalty
     {
-        Task<PenaltyPolicy> CreatePolicies(PenaltyPolicy productContact);
-        Task<List<PenaltyPolicy>> GetAllPolicies();
+        Task<List<PenaltyPolicyDTO>> GetAllPolicies();
         PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest);
+        Task<PenaltyPolicyDTO> GetPolicyById(string id);
     }
     public class Penalty : IPenalty
     {
@@ -24,13 +24,9 @@ namespace Nexum.Server.Services.Penalty
             this.fixedPenalty = fixedPenalty;
         }
 
-        public async Task<PenaltyPolicy> CreatePolicies(PenaltyPolicy penaltyPolicy)
-        {
-            // Await the inner Task<List<ProductContact>> to get the result directly
-            return await penaltyPolicies.CreatePolicies(penaltyPolicy);
-        }
 
-        public async Task<List<PenaltyPolicy>> GetAllPolicies()
+
+        public async Task<List<PenaltyPolicyDTO>> GetAllPolicies()
         {
             return await penaltyPolicies.GetAllPenaltyPolicies();
         }
@@ -95,8 +91,8 @@ namespace Nexum.Server.Services.Penalty
                         
                         MaxPenalty = PenaltyPolicies.PenaltyPolicyx.PenaltyMax,
                         TotalCap = PenaltyPolicies.PenaltyPolicyx.TotalCap,
-                        Percentage = PenaltyPolicies.PenaltyPolicyx.PenaltyRate,
-                        FixedAmount = PenaltyPolicies.PenaltyPolicyx.PenaltyFixed,
+                        Percentage = PenaltyPolicies.PenaltyPolicyx.PenaltyRate ?? 0m,
+                        FixedAmount = PenaltyPolicies.PenaltyPolicyx.PenaltyFixed ?? 0m,
                     };
                     switch (PenaltyPolicies.PenaltyPolicyx.PenaltyType)
                     {
@@ -125,6 +121,11 @@ namespace Nexum.Server.Services.Penalty
             }
 
             return penaltyResponse;
+        }
+
+        public Task<PenaltyPolicyDTO> GetPolicyById(string id)
+        {
+            return penaltyPolicies.GetPenaltyPolicyByIdAsync(id);
         }
     }
 }

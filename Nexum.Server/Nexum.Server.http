@@ -82,7 +82,9 @@ Content-Type: application/json
 }
 
 ###
-GET {{Nexum.Server_HostAddress}}/api/Books/GetAllBooks
+GET {{Nexum.Server_HostAddress}}/Penalty/GetAllPenaltyPolicies
 Content-Type: application/json
 
 ###
+GET {{Nexum.Server_HostAddress}}/Penalty/GetPenaltyPolicyById/a8gin2xnrl4wu47mwcva
+Content-Type: application/json
