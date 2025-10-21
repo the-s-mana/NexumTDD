@@ -9,22 +9,27 @@ namespace Nexum.Server.Controllers
     [Route("[controller]")]
     public class PenaltyController : ControllerBase
     {
-        public readonly IPenalty  penalty;
+        private readonly Penalty _penaltyService;
 
         //public readonly IDailyPenaltyStrategy dailyPenaltyStrategy;
 
-        public PenaltyController(IPenalty penalty)
+        public PenaltyController(Penalty penaltyService)
         {
-            this.penalty = penalty;
+            _penaltyService = penaltyService;
         }
 
-        [HttpPost("CalculatePenalty")]
-        public PenaltyResponse CalculatePenalty(PenaltyRequest penaltyRequest)
+        [HttpPost("calculate")]
+        public async Task<IActionResult> CalculatePenalty([FromBody] PenaltyRequest request)
         {
-            return penalty.GetPenalty(penaltyRequest);
+            try
+            {
+                var result = await _penaltyService.GetPenalty(request); // ใช้ await
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-
-
-
     }
 }

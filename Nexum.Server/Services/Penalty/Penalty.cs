@@ -1,26 +1,29 @@
-﻿using Nexum.Server.Models;
+﻿using Nexum.Server.DAC.Providers;
+using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 
 namespace Nexum.Server.Services.Penalty
 {
     public interface IPenalty
     {
-        PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest);
+        Task<PenaltyResponse?> GetPenalty(PenaltyRequest penaltyRequest);
     }
     public class Penalty : IPenalty
     {
         public readonly IPercentagePenalty percentagePenalty;
-        public readonly IPenaltyPolicies penaltyPolicies;
+        //public readonly IPenaltyPolicies penaltyPolicies;
         public readonly IDailyPenalty dailyPenalty;
-        public readonly IFixedPenalty fixedPenalty;
-        public Penalty(IPercentagePenalty percentagePenalty, IPenaltyPolicies penaltyPolicies, IDailyPenalty dailyPenalty, IFixedPenalty fixedPenalty)
+        public readonly IFixedPenalty fixedPenalty; 
+        private readonly ISurrealDbProviderFactory dbFactory;
+
+        public Penalty(IPercentagePenalty percentagePenalty, ISurrealDbProviderFactory dbFactory , IDailyPenalty dailyPenalty, IFixedPenalty fixedPenalty)
         {
             this.percentagePenalty = percentagePenalty;
-            this.penaltyPolicies = penaltyPolicies;
+            this.dbFactory = dbFactory;
             this.dailyPenalty = dailyPenalty;
             this.fixedPenalty = fixedPenalty;
         }
-        public PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest)
+        public async Task<PenaltyResponse> GetPenalty(PenaltyRequest penaltyRequest)
         {
             #region Validation
             if (penaltyRequest == null)
@@ -48,8 +51,18 @@ namespace Nexum.Server.Services.Penalty
 
             PenaltyResponse penaltyResponse = new PenaltyResponse();
 
-            //Get Penalty Policies By Id (Config Penalty Policies)
-            ProductContact PenaltyPolicies = penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID });
+            ////Get Penalty Policies By Id (Config Penalty Policies) @Tae Edit 20/10/2025 
+            //ProductContact PenaltyPolicies = await penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID }); 
+            
+            // --- ส่วนที่ 2: แก้ไขวิธีการดึงข้อมูล --- 
+            // 1. สั่งให้โรงงาน (Factory) สร้าง Provider ที่เราต้องการ
+            var policyProvider = dbFactory.Create<PenaltyPolicyDocument, ProductContact>(); 
+            
+            // 2. ใช้ Provider ที่ได้มาเพื่อดึงและแปลงข้อมูลในขั้นตอนเดียว
+            ProductContact? PenaltyPolicies = await policyProvider.GetX(penaltyRequest.PenaltyPolicyID.ToString()); 
+            
+            // 3. (สำคัญมาก) ตรวจสอบว่าเจอข้อมูล Policy หรือไม่
+            if (PenaltyPolicies == null) { throw new Exception($"PenaltyPolicy with ID {penaltyRequest.PenaltyPolicyID} not found in the database."); }
 
             //คำนวนยอดชำระขั้นต่ำ
             decimal minPayment = penaltyRequest.OutstandingBalance * (PenaltyPolicies.MinimumPaymentRate / 100); //
