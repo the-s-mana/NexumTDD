@@ -6,9 +6,7 @@ namespace Nexum.Server.Services.Penalty
 {
     public interface IPenalty
     {
-        Task<List<PenaltyPolicyDTO>> GetAllPolicies();
         PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest);
-        Task<PenaltyPolicyDTO> GetPolicyById(string id);
     }
     public class Penalty : IPenalty
     {
@@ -23,14 +21,6 @@ namespace Nexum.Server.Services.Penalty
             this.dailyPenalty = dailyPenalty;
             this.fixedPenalty = fixedPenalty;
         }
-
-
-
-        public async Task<List<PenaltyPolicyDTO>> GetAllPolicies()
-        {
-            return await penaltyPolicies.GetAllPenaltyPolicies();
-        }
-
         public PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest)
         {
             PenaltyResponse penaltyResponse = new PenaltyResponse();
@@ -121,11 +111,6 @@ namespace Nexum.Server.Services.Penalty
             }
 
             return penaltyResponse;
-        }
-
-        public Task<PenaltyPolicyDTO> GetPolicyById(string id)
-        {
-            return penaltyPolicies.GetPenaltyPolicyByIdAsync(id);
         }
     }
 }

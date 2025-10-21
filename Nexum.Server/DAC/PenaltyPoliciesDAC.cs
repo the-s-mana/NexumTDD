@@ -12,15 +12,20 @@ namespace Nexum.Server.DAC
         ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
         Task<List<PenaltyPolicyDTO>> GetAllProductContactAsync();
         Task<PenaltyPolicyDTO> GetPenaltyPolicyByIdAsync(string id);
+        Task<PenaltyPolicyDTO> CreatePenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto);
+        Task<PenaltyPolicyDTO> UpdatePenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto);
+        Task<PenaltyPolicyDTO> UpsertPenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto);
+        Task<bool> DeletePenaltyPolicyAsync(string id);
+
     }
     public class PenaltyPoliciesDAC : IPenaltyPoliciesDAC
     {
         SurrealDbProviderFactoryBase surrealDbProviderFactory;
-        ISurrealDbProvider<PenaltyPolicy,PenaltyPolicyDTO> penaltyPolicyDbProvider;
+        ISurrealDbProvider<PenaltyPolicy, PenaltyPolicyDTO> penaltyPolicyDbProvider;
         public PenaltyPoliciesDAC(SurrealDbProviderFactoryBase surrealDbProviderFactory)
         {
             this.surrealDbProviderFactory = surrealDbProviderFactory;
-            penaltyPolicyDbProvider = surrealDbProviderFactory.Create<PenaltyPolicy,PenaltyPolicyDTO>();
+            penaltyPolicyDbProvider = surrealDbProviderFactory.Create<PenaltyPolicy, PenaltyPolicyDTO>();
         }
 
         public ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
@@ -53,7 +58,7 @@ namespace Nexum.Server.DAC
                     MinimumPaymentRate = policy.PenaltyPolicyx.MinimumPaymentRate,
                 }
             };
-            
+
         }
 
         public static List<ProductContact> GetMockPenaltyPolicies()
@@ -124,6 +129,46 @@ namespace Nexum.Server.DAC
             var policy = await penaltyPolicyDbProvider.GetByIdAsNexumModelAsync(id);
             return policy;
         }
+        public async Task<PenaltyPolicyDTO> CreatePenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto)
+        {
+            var createdPolicy = await penaltyPolicyDbProvider.CreateAsNexumModelAsync(penaltyPolicyDto);
+            return createdPolicy;
+        }
+        public async Task<PenaltyPolicyDTO> UpdatePenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto)
+        {
+            if (string.IsNullOrEmpty(penaltyPolicyDto.Id))
+            {
+                throw new ArgumentException("PenaltyPolicyDTO must have a valid Id for update.");
+            }
+            // สร้าง dictionary สำหรับข้อมูลที่ต้องการอัพเดต
+            var updateData = new Dictionary<string, object?>
+            {
+                { "PolicyName", penaltyPolicyDto.PolicyName },
+                { "PenaltyType", penaltyPolicyDto.PenaltyType },
+                { "PenaltyRate", penaltyPolicyDto.PenaltyRate },
+                { "PenaltyFixed", penaltyPolicyDto.PenaltyFixed },
+                { "PenaltyMax", penaltyPolicyDto.PenaltyMax },
+                { "TotalCap", penaltyPolicyDto.TotalCap },
+                { "PenaltyFreePeriodDays", penaltyPolicyDto.PenaltyFreePeriodDays },
+                { "MinimumPaymentRate", penaltyPolicyDto.MinimumPaymentRate }
+            };
+            var updatedPolicy = await penaltyPolicyDbProvider.UpdateAsNexumModelAsync(penaltyPolicyDto.Id, updateData, CancellationToken.None);
+            return updatedPolicy;
+        }
+        public async Task<PenaltyPolicyDTO> UpsertPenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto)
+        {
+            var upsertedPolicy = await penaltyPolicyDbProvider.UpsertAsNexumModelAsync(penaltyPolicyDto, CancellationToken.None);
+            return upsertedPolicy;
+        }
+        public async Task<bool> DeletePenaltyPolicyAsync(string id)
+        {
+            return await penaltyPolicyDbProvider.DeleteAsync(id);
+        }
+
+
+
+
+
 
     }
 }
