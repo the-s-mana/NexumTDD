@@ -14,7 +14,7 @@ namespace Nexum.Server.Models.Penalty
         public int UserId { get; set; } //รหัสบัญชี (คีย์หลัก)
 
         [Required]
-        public int PenaltyPolicyID { get; set; }
+        public string PenaltyPolicyID { get; set; }
 
         [Required]
         [RegularExpression("Active|Inactive", ErrorMessage = "ActiveStatus ต้องเป็น Active หรือ Inactive เท่านั้น")]

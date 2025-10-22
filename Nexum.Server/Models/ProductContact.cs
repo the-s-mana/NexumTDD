@@ -30,7 +30,7 @@ namespace Nexum.Server.Models
         #region Penalty
 
         // 1. ยังคงเก็บ ID ของ Policy ไว้เป็น Foreign Key
-        public int PenaltyPolicyID { get; set; }
+        public string PenaltyPolicyID { get; set; }
 
         // 2. เพิ่ม Navigation Property เพื่อให้เข้าถึง Object ของ Policy ได้โดยตรง
         [ForeignKey("PenaltyPolicyID")]

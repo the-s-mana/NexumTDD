@@ -26,6 +26,11 @@ namespace Nexum.Server.Controllers
         {
             return penalty.GetPenalty(penaltyRequest);
         }
+
+
+
+
+        #region PenaltyPolicies
         [HttpGet("GetAllPenaltyPolicies")]
         public async Task<List<PenaltyPolicyDTO>> GetAllPenaltyPolicies()
         {
@@ -56,7 +61,7 @@ namespace Nexum.Server.Controllers
         {
             return await penaltyPolicies.DeletePenaltyPolicyAsync(id);
         }
-
+        #endregion
 
 
 

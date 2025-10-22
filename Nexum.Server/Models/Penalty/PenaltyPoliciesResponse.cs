@@ -2,7 +2,7 @@
 {
     public class PenaltyPoliciesResponse
     {
-        public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
+        public string PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
         public string PolicyName { get; set; } //ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
         public string PenaltyType { get; set; } // ประเภทการคำนวณ ('Daily', 'Fixed', 'Percentage')
         public decimal Rate { get; set; } // อัตราที่ใช้คำนวณ (อาจเป็นบาท/วัน หรือ %)

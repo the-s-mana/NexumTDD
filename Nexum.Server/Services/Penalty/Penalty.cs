@@ -55,9 +55,16 @@ namespace Nexum.Server.Services.Penalty
             #endregion
 
 
-
             //Get Penalty Policies By Id (Config Penalty Policies)
-            ProductContact PenaltyPolicies = penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID });
+            //ProductContact PenaltyPolicies = penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID });
+            //string penaltyPolicyId = "a8gin2xnrl4wu47mwcva";
+
+            var penaltyPolicyDTO = penaltyPolicies.GetPenaltyPolicyByIdAsync(penaltyRequest.PenaltyPolicyID);
+
+            ProductContact PenaltyPolicies = new ProductContact
+            {
+                PenaltyPolicyx = penaltyPolicyDTO.Result
+            };
 
             //คำนวนยอดชำระขั้นต่ำ
             decimal minPayment = penaltyRequest.OutstandingBalance * (PenaltyPolicies.PenaltyPolicyx.MinimumPaymentRate / 100); //

@@ -35,15 +35,23 @@ namespace Nexum.Server.Data
             var createdEntity = await surrealDbClient.Create<TsurrealModel>(Table, surrealEntity, cancellationToken);
             return createdEntity.Adapt<TnexumModel>();
         }
+        public async Task<TnexumModel> CreateAsSurrealModelAsync(TsurrealModel model, CancellationToken cancellationToken = default)
+        {
+            var createdEntity = await surrealDbClient.Create<TsurrealModel>(Table, model, cancellationToken);
+            return createdEntity.Adapt<TnexumModel>();
+        }
         public async Task<TnexumModel> UpdateAsNexumModelAsync(string id, Dictionary<string, object?> data, CancellationToken cancellationToken)
         {
-            var thing = RecordId.From(Table, id);
-            var x = await surrealDbClient.Merge<TsurrealModel>(thing, data, cancellationToken);
+            var recordId = RecordId.From(Table, id);
+            var x = await surrealDbClient.Merge<TsurrealModel>(recordId, data, cancellationToken);
             return x.Adapt<TnexumModel>();
         }
         public async Task<TnexumModel> UpsertAsNexumModelAsync(TnexumModel data, CancellationToken cancellationToken)
         {
+            
             var surrealEntity = data.Adapt<TsurrealModel>();
+
+
             var upsertedEntity = await surrealDbClient.Upsert<TsurrealModel>(Table, surrealEntity, cancellationToken);
             return upsertedEntity.Adapt<TnexumModel>();
         }
@@ -58,6 +66,6 @@ namespace Nexum.Server.Data
             return documents.GetValue<IEnumerable<Ts>?>(0);
         }
 
-
+        
     }
 }
