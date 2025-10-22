@@ -126,7 +126,7 @@ POST {{Nexum.Server_HostAddress}}/Penalty/UpsertPenaltyPolicy
 Content-Type: application/json
 
 {
-  "id": "8ooexwx9xcwggcb64rc4",
+  "id": "saiq9mb54jykcou838ge",
   "PolicyName": "Percentage Penalty qqqq2",
   "PenaltyType": "Percentage",
   "PenaltyRate": 10,

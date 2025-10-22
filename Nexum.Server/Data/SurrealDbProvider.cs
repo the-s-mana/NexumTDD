@@ -48,10 +48,7 @@ namespace Nexum.Server.Data
         }
         public async Task<TnexumModel> UpsertAsNexumModelAsync(TnexumModel data, CancellationToken cancellationToken)
         {
-            
             var surrealEntity = data.Adapt<TsurrealModel>();
-
-
             var upsertedEntity = await surrealDbClient.Upsert<TsurrealModel>(Table, surrealEntity, cancellationToken);
             return upsertedEntity.Adapt<TnexumModel>();
         }

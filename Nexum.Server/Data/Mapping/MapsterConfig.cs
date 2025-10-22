@@ -23,25 +23,9 @@ namespace Nexum.Server.Data.Mapping
                 });
 
             ////เพิ่ม Mapping: PenaltyPolicyDTO → PenaltyPolicy
-            TypeAdapterConfig<PenaltyPolicyDTO, PenaltyPolicy>.NewConfig()
-                .Map(dest => dest.Id, src => RecordId.From(nameof(PenaltyPolicy), src.Id.StringToRecordId()));
+            //TypeAdapterConfig<PenaltyPolicyDTO, PenaltyPolicy>.NewConfig()
+            //    .Map(dest => dest.Id, src => RecordId.From(nameof(PenaltyPolicy), src.Id.StringToRecordId()));
 
-            // Use the config variable if it is defined elsewhere, otherwise use GlobalSettings
-            //TypeAdapterConfig.GlobalSettings.ForType<RecordId, RecordId>().MapWith(src => src);
-
-            //TypeAdapterConfig.GlobalSettings.NewConfig<Book, BookResponseDTO>()
-            //    .Map(dest => dest.Id, src => src.Id == null ? null : src.Id.GetId())
-            //    .Map(dest => dest.StoreId, src => src.StoreId == null ? null : src.StoreId.GetId());
-
-            //TypeAdapterConfig.GlobalSettings.NewConfig<BookResponseDTO, Book>()
-            //    .Map(dest => dest.Id, src => src.Id.StringToRecordId<Book>())
-            //    .Map(dest => dest.StoreId, src => src.StoreId.StringToRecordId<Store>());
-
-            //TypeAdapterConfig.GlobalSettings.NewConfig<CreditWallet, WalletResponseDTO>()
-            //    .Map(dest => dest.Id, src => src.Id == null ? null : src.Id.GetId());
-
-            //TypeAdapterConfig.GlobalSettings.NewConfig<WalletResponseDTO, CreditWallet>()
-            //    .Map(dest => dest.Id, src => src.Id.StringToRecordId<CreditWallet>());
         }
     }
     public static class RecordIdExtensions
