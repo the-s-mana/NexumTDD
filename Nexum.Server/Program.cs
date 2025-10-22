@@ -23,17 +23,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Register DAC services
-builder.Services.AddScoped<ICreditWalletDAC, CreditWalletDAC>();
 builder.Services.AddScoped<IProductContactDAC, ProductContactDAC>();
 builder.Services.AddScoped<IAccumulatedInterestDAC, AccumulatedInterestDAC>();
 builder.Services.AddScoped<IInterestTransactionDAC, InterestTransactionDAC>();
 builder.Services.AddScoped<IPenaltyPoliciesDAC, PenaltyPoliciesDAC>();
+builder.Services.AddScoped<ICreditWalletDAC, CreditWalletDAC>();
+builder.Services.AddScoped<IProductContactDAC, ProductContactDAC>();
 
 // Register Service services
+builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IInterestService, InterestService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
-builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IContactService, ContactService>();
 
 builder.Services.AddScoped<IPenalty, Penalty>();
 builder.Services.AddScoped<IDailyPenalty, DailyPenalty>();
@@ -57,8 +59,9 @@ builder.Services.AddSurreal(x => x.FromConnectionString(surrealDbConfig["Connect
 builder.Services.AddScoped<SurrealDbProviderFactoryBase, SurrealDbProviderFactory>();
 
 // Register SurrealDb Providers
-builder.Services.AddScoped<ISurrealDbProvider<CreditWallet, WalletResponseDTO>, SurrealDbProvider<CreditWallet, WalletResponseDTO>>();
 builder.Services.AddScoped<ISurrealDbProvider<Book, BookResponseDTO>, SurrealDbProvider<Book, BookResponseDTO>>();
+builder.Services.AddScoped<ISurrealDbProvider<CreditWallet, WalletResponseDTO>, SurrealDbProvider<CreditWallet, WalletResponseDTO>>();
+builder.Services.AddScoped<ISurrealDbProvider<ProductContact, ContactResponseDTO>, SurrealDbProvider<ProductContact, ContactResponseDTO>>();
 
 var app = builder.Build();
 

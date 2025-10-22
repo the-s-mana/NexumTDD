@@ -1,15 +1,18 @@
-﻿using Nexum.Data.Models.Common;
+﻿using Mapster;
+using Nexum.Data.Models.Common;
+using Nexum.Server.Extensions;
 using Nexum.Server.Models;
+using Nexum.Server.Models.Book;
+using Nexum.Server.Models.CreditWallet;
 using SurrealDb.Net.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace Nexum.Server.Data.Models;
 
-public class ProductContact : BaseEntity
+public class ProductContact : BaseEntity, IRegister
 {
     #region Common
-    [Key]
-    public int CreditWalletId { get; set; } // อ้างอิงไปที่ CreditWallet Id
+    public RecordId CreditWalletId { get; set; } // อ้างอิงไปที่ CreditWallet Id
     public DateTime DueDate { get; set; } // วันครบกำหนดชำระ
     public decimal CreditLimit { get; set; } // วงเงินสินเชื่อ
     public bool Active { get; set; } // สถานะการใช้งาน
@@ -23,7 +26,7 @@ public class ProductContact : BaseEntity
     #endregion
 
     #region Penalty
-    public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
+    public RecordId PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
     public string PolicyName { get; set; } //ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
     public string PenaltyType { get; set; } // ประเภทการคำนวณ ('Daily', 'Fixed', 'Percentage')
     public decimal PenaltyRate { get; set; } // อัตราที่ใช้คำนวณ (อาจเป็นบาท/วัน หรือ %)
@@ -33,4 +36,24 @@ public class ProductContact : BaseEntity
     public int PenaltyFreePeriodDays { get; set; } // จำนวนวันผ่อนผันหลัง Due Date
     public decimal MinimumPaymentRate { get; set; } // อัตราชำระขั้นต่ำ (%)
     #endregion
+
+    public void Register(TypeAdapterConfig config)
+    {
+        config.ForType<RecordId, RecordId>().MapWith(src => src);
+
+        config.NewConfig<ProductContact, ContactResponseDTO>()
+            .Map(dest => dest.Id, src => src.Id == null ? null : src.Id.GetId())
+            .Map(dest => dest.CreditWalletId, src => src.CreditWalletId == null ? null : src.CreditWalletId.GetId())
+            .Map(dest => dest.PenaltyPolicyID, src => src.PenaltyPolicyID == null ? null : src.PenaltyPolicyID.GetId());
+
+        config.NewConfig<ContactResponseDTO, ProductContact>()
+            .ConstructUsing(src => new ProductContact())
+            .Map(dest => dest.Id, src => src.Id.StringToRecordId<ProductContact>())
+            .Map(dest => dest.CreditWalletId, src => src.CreditWalletId.StringToRecordId<CreditWallet>())
+            .Map(dest => dest.PenaltyPolicyID, src => src.PenaltyPolicyID.StringToRecordId<PenaltyPolicy>())
+            .Ignore(dest => dest.CreateDate)
+            .Ignore(dest => dest.CreateBy)
+            .Ignore(dest => dest.UpdateDate)
+            .Ignore(dest => dest.UpdateBy);
+    }
 }

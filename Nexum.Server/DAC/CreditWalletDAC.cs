@@ -16,15 +16,13 @@ namespace Nexum.Server.DAC
 
     public class CreditWalletDAC : ICreditWalletDAC
     {
-        private readonly ISurrealDbProvider<Book, BookResponseDTO> _bookDbProvider;
         private readonly ISurrealDbProvider<CreditWallet, WalletResponseDTO> _creditWalletDbProvider;
 
         public CreditWalletDAC(
             SurrealDbProviderFactoryBase surrealDbProviderFactory
             , ISurrealDbProvider<CreditWallet, WalletResponseDTO> creditWalletDbProvider)
         {
-            _bookDbProvider = surrealDbProviderFactory.Create<Book, BookResponseDTO>();
-            _creditWalletDbProvider = creditWalletDbProvider;
+            _creditWalletDbProvider = surrealDbProviderFactory.Create<CreditWallet, WalletResponseDTO>();
         }
 
         public async Task<WalletResponseDTO> CreateWalletAsync(WalletResponseDTO create)

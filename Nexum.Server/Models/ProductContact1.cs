@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Nexum.Server.Models
 {
-    public class ProductContact : BaseEntityDTO
+    public class ProductContact1 : BaseEntityDTO
     {
         #region Common
         [Key]

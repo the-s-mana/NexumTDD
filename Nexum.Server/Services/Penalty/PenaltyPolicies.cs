@@ -7,7 +7,7 @@ namespace Nexum.Server.Services.Penalty
     public interface IPenaltyPolicies
     {
         // Define methods related to penalty policies here
-        ProductContact penaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
+        ProductContact1 penaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
     }
     public class PenaltyPolicies : IPenaltyPolicies
     {
@@ -16,7 +16,7 @@ namespace Nexum.Server.Services.Penalty
         { 
             this.penaltyPoliciesDAC = penaltyPoliciesDAC;
         }
-        public ProductContact penaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
+        public ProductContact1 penaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
         {
             return penaltyPoliciesDAC.GetPenaltyPolicies(penaltyPoliciesRequest);
         }

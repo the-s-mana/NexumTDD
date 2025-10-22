@@ -49,7 +49,7 @@ namespace Nexum.Server.Services.Penalty
             PenaltyResponse penaltyResponse = new PenaltyResponse();
 
             //Get Penalty Policies By Id (Config Penalty Policies)
-            ProductContact PenaltyPolicies = penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID });
+            ProductContact1 PenaltyPolicies = penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID });
 
             //คำนวนยอดชำระขั้นต่ำ
             decimal minPayment = penaltyRequest.OutstandingBalance * (PenaltyPolicies.MinimumPaymentRate / 100); //

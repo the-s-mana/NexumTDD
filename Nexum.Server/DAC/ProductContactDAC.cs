@@ -1,35 +1,36 @@
+using Nexum.Server.Data;
+using Nexum.Server.Data.Models;
 using Nexum.Server.Models;
+using Nexum.Server.Models.CreditWallet;
+using static Nexum.Server.Data.IDbProviderFactory;
 
 namespace Nexum.Server.DAC
 {
     public interface IProductContactDAC
     {
-        ProductContact GetProductContact(int creditWalletId);
+        Task<ContactResponseDTO> CreateContactAsync(ContactResponseDTO create);
+        Task<ContactResponseDTO> GetContactByIdAsync(string id);
     }
 
     public class ProductContactDAC : IProductContactDAC
     {
-        public ProductContact GetProductContact(int creditWalletId)
+        private readonly ISurrealDbProvider<ProductContact, ContactResponseDTO> _contactDbProvider;
+
+        public ProductContactDAC(
+            SurrealDbProviderFactoryBase surrealDbProviderFactory
+            , ISurrealDbProvider<ProductContact, ContactResponseDTO> contactDbProvider)
         {
-            ProductContact productContact = new ProductContact
-            {
-                ProductContactId = 1,
-                CreditWalletId = creditWalletId,
-                CreditLimit = 1000,
-                InterestRate = 15,
-                PenaltyRate = 10,
-                //MinimumPayment = 10,
-                InterestType = "PerMonth",
-                PenaltyType = "",
-                InterestFreePeriodDays = DateTime.Now.AddDays(30),
-                //PenaltyFreePeriodDays = DateTime.Now.AddDays(30),
-                Active = true,
-                CreateDate = DateTime.Now,
-                CreateBy = "System",
-                UpdateDate = DateTime.Now,
-                UpdateBy = "System"
-            };
-            return productContact;
+            _contactDbProvider = surrealDbProviderFactory.Create<ProductContact, ContactResponseDTO>();
+        }
+
+        public async Task<ContactResponseDTO> CreateContactAsync(ContactResponseDTO create)
+        {
+            return await _contactDbProvider.CreateNexum(create);
+        }
+
+        public async Task<ContactResponseDTO> GetContactByIdAsync(string id)
+        {
+            return await _contactDbProvider.GetByIdNexum(id);
         }
     }
 }

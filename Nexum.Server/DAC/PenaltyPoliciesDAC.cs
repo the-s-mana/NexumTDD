@@ -6,11 +6,11 @@ namespace Nexum.Server.DAC
 {
     public interface IPenaltyPoliciesDAC
     {
-        ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
+        ProductContact1 GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
     }
     public class PenaltyPoliciesDAC : IPenaltyPoliciesDAC
     {
-        public ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
+        public ProductContact1 GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
         {
             // Search for the policy in the mock list by ID
             var policies = GetMockPenaltyPolicies();
@@ -21,7 +21,7 @@ namespace Nexum.Server.DAC
                 throw new KeyNotFoundException($"Penalty policy with ID {penaltyPoliciesRequest.PenaltyPolicyID} not found.");
             }
 
-            return new ProductContact
+            return new ProductContact1
             {
                 PenaltyPolicyID = penaltyPoliciesRequest.PenaltyPolicyID,
                 PolicyName = policy.PolicyName,
@@ -35,11 +35,11 @@ namespace Nexum.Server.DAC
             };
         }
 
-        public static List<ProductContact> GetMockPenaltyPolicies()
+        public static List<ProductContact1> GetMockPenaltyPolicies()
         {
-            return new List<ProductContact>
+            return new List<ProductContact1>
             {
-                new ProductContact
+                new ProductContact1
                 {
                     PenaltyPolicyID = 1,
                     PolicyName = "Standard Daily Penalty",
@@ -49,7 +49,7 @@ namespace Nexum.Server.DAC
                     PenaltyFreePeriodDays = 5,
                     MinimumPaymentRate = 10.0m, // 10%
                 },
-                new ProductContact
+                new ProductContact1
                 {
                     PenaltyPolicyID = 2,
                     PolicyName = "Fixed Penalty",
@@ -57,7 +57,7 @@ namespace Nexum.Server.DAC
                     FixedAmount = 200.0m,
                     MinimumPaymentRate = 10.0m, // 10%
                 },
-                new ProductContact
+                new ProductContact1
                 {
                     PenaltyPolicyID = 3,
                     PolicyName = "Percentage Penalty",
@@ -67,7 +67,7 @@ namespace Nexum.Server.DAC
                     PenaltyFreePeriodDays = 5,
                     MinimumPaymentRate = 10.0m, // 10%
                 },
-                new ProductContact
+                new ProductContact1
                 {
                     PenaltyPolicyID = 4,
                     PolicyName = "Special Daily Penalty",

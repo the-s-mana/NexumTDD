@@ -2,14 +2,14 @@ namespace Nexum.Server.Utils
 {
     public interface IDateTimeUtils
     {
-        DateTime GetCurrentDateTime();
+        DateTime GetCurrentDateTime(int? daysToAdd = null);
     }
 
     public class DateTimeUtils : IDateTimeUtils
     {
-        public DateTime GetCurrentDateTime()
+        public DateTime GetCurrentDateTime(int? daysToAdd)
         {
-            return DateTime.Now;
+            return DateTime.Now.AddDays(daysToAdd ?? 0);
         }
     }
 }
