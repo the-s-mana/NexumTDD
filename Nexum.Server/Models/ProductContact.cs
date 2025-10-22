@@ -26,9 +26,9 @@ namespace Nexum.Server.Models
         #endregion
 
         #region Penalty
-        public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
-        public string PolicyName { get; set; } //ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
-        public string PenaltyType { get; set; } // ประเภทการคำนวณ ('Daily', 'Fixed', 'Percentage')
+        public int PenaltyPolicyID { get; set; } = default!; // รหัสนโยบายค่าปรับ
+        public string PolicyName { get; set; } = default!;//ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
+        public string PenaltyType { get; set; } = default!; // ประเภทการคำนวณ ('Daily', 'Fixed', 'Percentage')
         public decimal PenaltyRate { get; set; } // อัตราที่ใช้คำนวณ (อาจเป็นบาท/วัน หรือ %)
         public decimal FixedAmount { get; set; } // ค่าปรับแบบคงที่ (สำหรับประเภท 'Fixed')
         public decimal MaxPenalty { get; set; } // เพดานค่าปรับต่อครั้ง (เช่น 300 บาท)
