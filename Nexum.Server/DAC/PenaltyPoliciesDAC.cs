@@ -9,14 +9,14 @@ namespace Nexum.Server.DAC
 {
     public interface IPenaltyPoliciesDAC
     {
-        ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest);
-        Task<List<PenaltyPolicyDTO>> GetAllProductContactAsync();
-        Task<PenaltyPolicyDTO> GetPenaltyPolicyByIdAsync(string id);
+        ProductContact GetPenaltyPoliciesMock(PenaltyPoliciesRequest penaltyPoliciesRequest);
+        Task<List<PenaltyPolicyDTO>> GetAllPenaltyPolicyAsync();
+        Task<PenaltyPolicyDTO> GetPenaltyPolicyByIdAsync(string Id);
         Task<PenaltyPolicyDTO> CreatePenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto);
-        Task<PenaltyPolicyDTO> UpdatePenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto);
+        Task<PenaltyPolicyDTO> CreatePenaltyPolicyAsyncSurreal(PenaltyPolicy penaltyPolicy);
         Task<PenaltyPolicyDTO> UpsertPenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto);
-        Task<bool> DeletePenaltyPolicyAsync(string id);
-
+        Task<bool> DeletePenaltyPolicyAsync(string Id);
+        Task<PenaltyPolicyDTO> UpdatePenaltyPolicyAsync(string Id, Dictionary<string, object?> dictionary);
     }
     public class PenaltyPoliciesDAC : IPenaltyPoliciesDAC
     {
@@ -28,7 +28,8 @@ namespace Nexum.Server.DAC
             penaltyPolicyDbProvider = surrealDbProviderFactory.Create<PenaltyPolicy, PenaltyPolicyDTO>();
         }
 
-        public ProductContact GetPenaltyPolicies(PenaltyPoliciesRequest penaltyPoliciesRequest)
+        #region Mock Data
+        public ProductContact GetPenaltyPoliciesMock(PenaltyPoliciesRequest penaltyPoliciesRequest)
         {
             // Search for the policy in the mock list by ID
             var policies = GetMockPenaltyPolicies();
@@ -60,14 +61,13 @@ namespace Nexum.Server.DAC
             };
 
         }
-
         public static List<ProductContact> GetMockPenaltyPolicies()
         {
             return new List<ProductContact>
             {
                 new ProductContact
                 {
-                    PenaltyPolicyID = 1,
+                    PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                     PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Standard Daily Penalty",
@@ -80,7 +80,7 @@ namespace Nexum.Server.DAC
                 },
                 new ProductContact
                 {
-                    PenaltyPolicyID = 2,
+                    PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                     PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Fixed Penalty",
@@ -91,7 +91,7 @@ namespace Nexum.Server.DAC
                 },
                 new ProductContact
                 {
-                    PenaltyPolicyID = 3,
+                    PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                     PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Percentage Penalty",
@@ -104,7 +104,7 @@ namespace Nexum.Server.DAC
                 },
                 new ProductContact
                 {
-                    PenaltyPolicyID = 4,
+                    PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                     PenaltyPolicyx = new PenaltyPolicyDTO
                     {
                         PolicyName = "Special Daily Penalty",
@@ -118,8 +118,9 @@ namespace Nexum.Server.DAC
                 }
             };
         }
+        #endregion
 
-        public async Task<List<PenaltyPolicyDTO>> GetAllProductContactAsync()
+        public async Task<List<PenaltyPolicyDTO>> GetAllPenaltyPolicyAsync()
         {
             var policies = await penaltyPolicyDbProvider.ListAsNexumModelAsync();
             return policies.ToList();
@@ -134,25 +135,14 @@ namespace Nexum.Server.DAC
             var createdPolicy = await penaltyPolicyDbProvider.CreateAsNexumModelAsync(penaltyPolicyDto);
             return createdPolicy;
         }
-        public async Task<PenaltyPolicyDTO> UpdatePenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto)
+        public async Task<PenaltyPolicyDTO> CreatePenaltyPolicyAsyncSurreal(PenaltyPolicy penaltyPolicy)
         {
-            if (string.IsNullOrEmpty(penaltyPolicyDto.Id))
-            {
-                throw new ArgumentException("PenaltyPolicyDTO must have a valid Id for update.");
-            }
-            // สร้าง dictionary สำหรับข้อมูลที่ต้องการอัพเดต
-            var updateData = new Dictionary<string, object?>
-            {
-                { "PolicyName", penaltyPolicyDto.PolicyName },
-                { "PenaltyType", penaltyPolicyDto.PenaltyType },
-                { "PenaltyRate", penaltyPolicyDto.PenaltyRate },
-                { "PenaltyFixed", penaltyPolicyDto.PenaltyFixed },
-                { "PenaltyMax", penaltyPolicyDto.PenaltyMax },
-                { "TotalCap", penaltyPolicyDto.TotalCap },
-                { "PenaltyFreePeriodDays", penaltyPolicyDto.PenaltyFreePeriodDays },
-                { "MinimumPaymentRate", penaltyPolicyDto.MinimumPaymentRate }
-            };
-            var updatedPolicy = await penaltyPolicyDbProvider.UpdateAsNexumModelAsync(penaltyPolicyDto.Id, updateData, CancellationToken.None);
+            var createdPolicy = await penaltyPolicyDbProvider.CreateAsSurrealModelAsync(penaltyPolicy);
+            return createdPolicy;
+        }
+        public async Task<PenaltyPolicyDTO> UpdatePenaltyPolicyAsync(string Id, Dictionary<string, object?> dictionary)
+        {
+            var updatedPolicy = await penaltyPolicyDbProvider.UpdateAsNexumModelAsync(Id, dictionary, CancellationToken.None);
             return updatedPolicy;
         }
         public async Task<PenaltyPolicyDTO> UpsertPenaltyPolicyAsync(PenaltyPolicyDTO penaltyPolicyDto)

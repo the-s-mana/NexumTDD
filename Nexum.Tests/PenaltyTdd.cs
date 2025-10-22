@@ -54,7 +54,7 @@ namespace Nexum.Tests
         {
             new ProductContact
             {
-                PenaltyPolicyID = 1,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PolicyName = "Percentage Penalty",
@@ -67,7 +67,7 @@ namespace Nexum.Tests
             },
             new ProductContact
             {
-                PenaltyPolicyID = 2,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PolicyName = "Percentage Penalty",
@@ -80,7 +80,7 @@ namespace Nexum.Tests
             },
             new ProductContact
             {
-                PenaltyPolicyID = 3,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PolicyName = "Percentage Penalty",
@@ -93,7 +93,7 @@ namespace Nexum.Tests
             },
             new ProductContact
             {
-                PenaltyPolicyID = 4,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PolicyName = "Special Daily Penalty",
@@ -108,7 +108,7 @@ namespace Nexum.Tests
         };
         #endregion
 
-        private decimal CalculateMinimumPayment(decimal outstandingBalance, int penaltyPolicyID)
+        private decimal CalculateMinimumPayment(decimal outstandingBalance, string penaltyPolicyID)
         {
             var policy = _policyList.Single(x => x.PenaltyPolicyID == penaltyPolicyID);
             return outstandingBalance * (policy.PenaltyPolicyx.MinimumPaymentRate / 100);
@@ -154,7 +154,7 @@ namespace Nexum.Tests
         }
         [Theory(DisplayName = "Normal - PercentMonthly ตรวจสอบ ค่าปรับ และต้องไม่เกิน PenaltyMax")]
         [MemberData(nameof(PercentMonthly))]
-        public void Scenario1_PercentMonthly_PenaltyMoreThanPenaltyMax(int userId, int penaltyPolicyID, string activeStatus, decimal outstandingBalance, DateTime dueDate, decimal paymentAmount, decimal expected)
+        public void Scenario1_PercentMonthly_PenaltyMoreThanPenaltyMax(int userId, string penaltyPolicyID, string activeStatus, decimal outstandingBalance, DateTime dueDate, decimal paymentAmount, decimal expected)
         {
             // Arrange
             var penaltyRequest = new PenaltyRequest
@@ -201,7 +201,7 @@ namespace Nexum.Tests
         [MemberData(nameof(AlternativeCases))]
         public void AlternativeCase_PenaltyCalculation(
             int userId,
-            int penaltyPolicyID,
+            string penaltyPolicyID,
             string activeStatus,
             decimal outstandingBalance,
             DateTime dueDate,
@@ -243,15 +243,15 @@ namespace Nexum.Tests
         //  • DueDate
         //  • PaymentAmount
         [Theory(DisplayName = "Exception - Validate input data")]
-        [InlineData(0, 1, "Active", 5000, "2025-10-14", 0, typeof(ArgumentException), "UserId")]
-        [InlineData(1, 0, "Active", 5000, "2025-10-14", 0, typeof(ArgumentException), "PenaltyPolicyID")]
-        [InlineData(1, 1, "", 5000, "2025-10-14", 0, typeof(ArgumentException), "ActiveStatus")]
-        [InlineData(1, 1, "Active", -100, "2025-10-14", 0, typeof(ArgumentException), "OutstandingBalance")]
-        [InlineData(1, 1, "Active", 5000, "", 0, typeof(ArgumentException), "DueDate")]
-        [InlineData(1, 1, "Active", 5000, "2025-10-14", -10, typeof(ArgumentException), "PaymentAmount")]
+        [InlineData(0, "a8gin2xnrl4wu47mwcva", "Active", 5000, "2025-10-14", 0, typeof(ArgumentException), "UserId")]
+        [InlineData(1, "a8gin2xnrl4wu47mwcva", "Active", 5000, "2025-10-14", 0, typeof(ArgumentException), "PenaltyPolicyID")]
+        [InlineData(1, "a8gin2xnrl4wu47mwcva", "", 5000, "2025-10-14", 0, typeof(ArgumentException), "ActiveStatus")]
+        [InlineData(1, "a8gin2xnrl4wu47mwcva", "Active", -100, "2025-10-14", 0, typeof(ArgumentException), "OutstandingBalance")]
+        [InlineData(1, "a8gin2xnrl4wu47mwcva", "Active", 5000, "", 0, typeof(ArgumentException), "DueDate")]
+        [InlineData(1, "a8gin2xnrl4wu47mwcva", "Active", 5000, "2025-10-14", -10, typeof(ArgumentException), "PaymentAmount")]
         public void ValidateInputData_ShouldThrowException(
             int userId,
-            int penaltyPolicyID,
+            string penaltyPolicyID,
             string activeStatus,
             decimal outstandingBalance,
             string dueDateStr,
@@ -277,11 +277,11 @@ namespace Nexum.Tests
 
         //- ตรวจสอบ user active
         [Theory(DisplayName = "Exception - ตรวจสอบ user active")]
-        [InlineData(1, 1, false, "Active", 5000, "2025-10-14", 0, typeof(InvalidOperationException))]
-        [InlineData(2, 2, false, "Active", 7000, "2025-10-14", 0, typeof(InvalidOperationException))]
+        [InlineData(1, "a8gin2xnrl4wu47mwcva", false, "Active", 5000, "2025-10-14", 0, typeof(InvalidOperationException))]
+        [InlineData(2, "a8gin2xnrl4wu47mwcva", false, "Active", 7000, "2025-10-14", 0, typeof(InvalidOperationException))]
         public void ValidateUserActive_ShouldThrowException(
             int userId,
-            int penaltyPolicyID,
+            string penaltyPolicyID,
             bool isActive,
             string activeStatus,
             decimal outstandingBalance,

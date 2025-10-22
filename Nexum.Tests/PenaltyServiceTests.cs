@@ -30,7 +30,7 @@ namespace Nexum.Tests
         {
            new ProductContact
             {
-                PenaltyPolicyID = 1,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Daily",
@@ -42,7 +42,7 @@ namespace Nexum.Tests
             },
             new ProductContact
             {
-                PenaltyPolicyID = 2,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Fixed",
@@ -51,7 +51,7 @@ namespace Nexum.Tests
             },
             new ProductContact
             {
-                PenaltyPolicyID = 3,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Percentage",
@@ -62,7 +62,7 @@ namespace Nexum.Tests
             },
             new ProductContact
             {
-                PenaltyPolicyID = 4,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 PenaltyPolicyx = new PenaltyPolicyDTO
                 {
                     PenaltyType = "Daily",
@@ -85,7 +85,7 @@ namespace Nexum.Tests
         new Case(
             Request: new PenaltyRequest{
                 UserId = 1,
-                PenaltyPolicyID = 1,
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
                 ActiveStatus = "Active",
                 OutstandingBalance = 5000m,
                 DueDate = now.AddDays(-6),
@@ -105,7 +105,7 @@ namespace Nexum.Tests
         new Case(
             Request: new PenaltyRequest{
                 UserId = 3,
-                PenaltyPolicyID = 2,          // Fixed=200
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",          // Fixed=200
                 ActiveStatus = "Active",
                 OutstandingBalance = 3000m,
                 DueDate = now.AddDays(-1),
@@ -124,7 +124,7 @@ namespace Nexum.Tests
         new Case(
             Request: new PenaltyRequest{
                 UserId = 3,
-                PenaltyPolicyID = 3,          // Rate=2.5, Max=300, Grace=5
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",          // Rate=2.5, Max=300, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 4000m,
                 DueDate = now.AddDays(-10),
@@ -144,7 +144,7 @@ namespace Nexum.Tests
         new Case(
             Request: new PenaltyRequest{
                 UserId = 3,
-                PenaltyPolicyID = 2,          // Fixed=200 (แต่ไม่โดนคิดปรับเพราะไม่ Overdue/under-min)
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",          // Fixed=200 (แต่ไม่โดนคิดปรับเพราะไม่ Overdue/under-min)
                 ActiveStatus = "Active",
                 OutstandingBalance = 3000m,
                 DueDate = now,                 // ต้องไม่ > now
@@ -241,7 +241,7 @@ namespace Nexum.Tests
         new Case(
             Request: new PenaltyRequest{
                 UserId = 1,
-                PenaltyPolicyID = 1,          // Daily: Fixed=100, TotalCap=1000, Grace=5
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",          // Daily: Fixed=100, TotalCap=1000, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 3000m,
                 DueDate = now.AddDays(-1),
@@ -261,7 +261,7 @@ namespace Nexum.Tests
         new Case(
             Request: new PenaltyRequest{
                 UserId = 3,
-                PenaltyPolicyID = 1,          // Daily: Fixed=100, TotalCap=1000, Grace=5
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",          // Daily: Fixed=100, TotalCap=1000, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 10000m,
                 DueDate = now.AddDays(-20),
@@ -281,7 +281,7 @@ namespace Nexum.Tests
         new Case(
             Request: new PenaltyRequest{
                 UserId = 3,
-                PenaltyPolicyID = 3,          // Rate=2.5, Max=300, Grace=5
+                PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",          // Rate=2.5, Max=300, Grace=5
                 ActiveStatus = "Active",
                 OutstandingBalance = 20000m,
                 DueDate = now.AddDays(-6),    // 6 > 5 ⇒ คิดปรับ
@@ -372,7 +372,7 @@ namespace Nexum.Tests
             yield return new object[] {
         new PenaltyRequest{
             UserId = 1,
-            PenaltyPolicyID = 1,
+            PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
             ActiveStatus = "Active",
             OutstandingBalance = 0m,
             DueDate = now.AddDays(-1),
@@ -386,7 +386,7 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 0,
             ActiveStatus = "Active",
-            PenaltyPolicyID = 1,
+            PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
             OutstandingBalance = 100m,
             DueDate = now.AddDays(-1),
             PaymentAmount = 0m
@@ -398,7 +398,7 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = null!,
-            PenaltyPolicyID = 1,
+            PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
             OutstandingBalance = 100m,
             DueDate = now.AddDays(-1),
             PaymentAmount = 0m
@@ -410,7 +410,7 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = "Pause",
-            PenaltyPolicyID = 1,
+            PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
             OutstandingBalance = 100m,
             DueDate = now.AddDays(-1),
             PaymentAmount = 0m
@@ -422,7 +422,7 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = "Inactive",
-            PenaltyPolicyID = 1,
+            PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
             OutstandingBalance = 100m,
             DueDate = now.AddDays(-1),
             PaymentAmount = 0m
@@ -434,7 +434,7 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = "Active",
-            PenaltyPolicyID = 1,
+            PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
             OutstandingBalance = 100m,
             DueDate = now.AddDays(+1),
             PaymentAmount = 0m
@@ -446,7 +446,7 @@ namespace Nexum.Tests
         new PenaltyRequest {
             UserId = 1,
             ActiveStatus = "Active",
-            PenaltyPolicyID = 999,
+            PenaltyPolicyID = "a8gin2xnrl4wu47mwcva",
             OutstandingBalance = 100m,
             DueDate = now.AddDays(-1),
             PaymentAmount = 0m

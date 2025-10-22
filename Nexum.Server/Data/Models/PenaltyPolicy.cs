@@ -4,7 +4,7 @@ namespace Nexum.Server.Data.Models
 {
     public class PenaltyPolicy : Record
     {
-        public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
+        //public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
         public string PolicyName { get; set; } // ชื่อของนโยบาย (เช่น "ค่าปรับรายวันมาตรฐาน")
         public string PenaltyType { get; set; } // ประเภทการคำนวณ ('PercentDaily', 'FixedDaily', 'PercentMonthly', 'FixedMonthly')
         public decimal PenaltyRate { get; set; } // อัตราที่ใช้คำนวณ (อาจเป็นบาท/วัน หรือ %)

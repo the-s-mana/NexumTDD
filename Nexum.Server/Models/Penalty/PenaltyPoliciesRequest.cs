@@ -2,7 +2,7 @@
 {
     public class PenaltyPoliciesRequest
     {
-        public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
+        public string PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
 
 
 

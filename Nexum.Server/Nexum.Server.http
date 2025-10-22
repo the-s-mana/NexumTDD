@@ -7,7 +7,7 @@ Content-Type: application/json
 
 {
   "UserId": 1,
-  "PenaltyPolicyID": 1,
+  "PenaltyPolicyID": "a8gin2xnrl4wu47mwcva",
   "ActiveStatus": "Active",
   "OutstandingBalance": 5000.00,
   "DueDate": "2024-09-30T00:00:00",
@@ -15,43 +15,43 @@ Content-Type: application/json
 }
 
 ### CalculatePenalty: Fixed Penalty
-POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
-Content-Type: application/json
+# POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+# Content-Type: application/json
 
-{
-  "UserId": 102,
-  "PenaltyPolicyID": 2,
-  "ActiveStatus": "Active",
-  "OutstandingBalance": 3000.00,
-  "DueDate": "2024-09-25T00:00:00",
-  "PaymentAmount": 500.00
-}
+# {
+#   "UserId": 102,
+#   "PenaltyPolicyID": 2,
+#   "ActiveStatus": "Active",
+#   "OutstandingBalance": 3000.00,
+#   "DueDate": "2024-09-25T00:00:00",
+#   "PaymentAmount": 500.00
+# }
 
 ### CalculatePenalty: Percentage Penalty
-POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
-Content-Type: application/json
+# POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+# Content-Type: application/json
 
-{
-  "UserId": 103,
-  "PenaltyPolicyID": 3,
-  "ActiveStatus": "Active",
-  "OutstandingBalance": 10000.00,
-  "DueDate": "2024-09-20T00:00:00",
-  "PaymentAmount": 1000.00
-}
+# {
+#   "UserId": 103,
+#   "PenaltyPolicyID": 3,
+#   "ActiveStatus": "Active",
+#   "OutstandingBalance": 10000.00,
+#   "DueDate": "2024-09-20T00:00:00",
+#   "PaymentAmount": 1000.00
+# }
 
 ### CalculatePenalty: Special Daily Penalty
-POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
-Content-Type: application/json
+# POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
+# Content-Type: application/json
 
-{
-  "UserId": 104,
-  "PenaltyPolicyID": 4,
-  "ActiveStatus": "Active",
-  "OutstandingBalance": 8000.00,
-  "DueDate": "2024-09-15T00:00:00",
-  "PaymentAmount": 2000.00
-}
+# {
+#   "UserId": 104,
+#   "PenaltyPolicyID": 4,
+#   "ActiveStatus": "Active",
+#   "OutstandingBalance": 8000.00,
+#   "DueDate": "2024-09-15T00:00:00",
+#   "PaymentAmount": 2000.00
+# }
 
 ### CalculatePenalty: Not Found Policy
 POST {{Nexum.Server_HostAddress}}/Penalty/CalculatePenalty
@@ -86,7 +86,7 @@ GET {{Nexum.Server_HostAddress}}/Penalty/GetAllPenaltyPolicies
 Content-Type: application/json
 
 ###
-GET {{Nexum.Server_HostAddress}}/Penalty/GetPenaltyPolicyById/ombnjnrugo5iqsb73amf
+GET {{Nexum.Server_HostAddress}}/Penalty/GetPenaltyPolicyById/saiq9mb54jykcou838ge
 Content-Type: application/json
 
 ###
@@ -94,8 +94,7 @@ POST {{Nexum.Server_HostAddress}}/Penalty/CreatePenaltyPolicy
 Content-Type: application/json
 
 {
-    "PenaltyPolicyID" : 4,
-    "PolicyName" : "Percentage Penalty yyy",
+    "PolicyName" : "Percentage Penalty qqqq",
     "PenaltyType" : "Percentage",
     "PenaltyRate" : 10,
     "PenaltyFixed" : 0,
@@ -110,9 +109,8 @@ PUT {{Nexum.Server_HostAddress}}/Penalty/UpdatePenaltyPolicy
 Content-Type: application/json
 
 {
-  "id": "ombnjnrugo5iqsb73amf",
-  "PenaltyPolicyID": 4,
-  "PolicyName": "Percentage Penalty 777",
+  "id": "8ooexwx9xcwggcb64rc4",
+  "PolicyName": "Percentage Penalty qqqq",
   "PenaltyType": "Percentage",
   "PenaltyRate": 10,
   "PenaltyFixed": 0,
@@ -122,7 +120,25 @@ Content-Type: application/json
   "MinimumPaymentRate": 0
 }
 
+
 ###
-DELETE {{Nexum.Server_HostAddress}}/Penalty/DeletePenaltyPolicy/ombnjnrugo5iqsb73amf
+POST {{Nexum.Server_HostAddress}}/Penalty/UpsertPenaltyPolicy
+Content-Type: application/json
+
+{
+  "id": "saiq9mb54jykcou838ge",
+  "PolicyName": "Percentage Penalty qqqq2",
+  "PenaltyType": "Percentage",
+  "PenaltyRate": 10,
+  "PenaltyFixed": 0,
+  "PenaltyMax": 500,
+  "TotalCap": 800,
+  "PenaltyFreePeriodDays": 0,
+  "MinimumPaymentRate": 0
+}
+
+
+###
+DELETE {{Nexum.Server_HostAddress}}/Penalty/DeletePenaltyPolicy/vjl5o0b5cxr3ky9580j4
 Content-Type: application/json
 
