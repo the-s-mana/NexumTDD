@@ -40,32 +40,32 @@ builder.Services.AddScoped<IFixedPenalty, FixedPenalty>();
 
 //########################### ส่วนที่เต้เพิ่มเข้ามา ########################### 
 
-//// Register Utils
+// Register Utils
 //builder.Services.AddScoped<IDateTimeUtils, DateTimeUtils>();
 
-//// Mapster
+// Mapster
 //builder.Services.AddMapster();
-//var typeAdapterConfig = TypeAdapterConfig.GlobalSettings;
-//typeAdapterConfig.Scan(Assembly.GetExecutingAssembly());
-//builder.Services.AddSingleton(typeAdapterConfig);
+var typeAdapterConfig = TypeAdapterConfig.GlobalSettings;
+typeAdapterConfig.Scan(Assembly.GetExecutingAssembly());
+builder.Services.AddSingleton(typeAdapterConfig);
 //builder.Services.AddScoped<IMapper, ServiceMapper>();
 
-//// SurrealDB
-//var surrealDbConfig = builder.Configuration.GetSection("SurrealDbSettings");
-//builder.Services.AddSurreal(x => x.FromConnectionString(surrealDbConfig["ConnectionString"]), ServiceLifetime.Scoped);
+// SurrealDB
+var surrealDbConfig = builder.Configuration.GetSection("SurrealDbSettings");
+builder.Services.AddSurreal(x => x.FromConnectionString(surrealDbConfig["ConnectionString"]), ServiceLifetime.Scoped);
 //builder.Services.AddScoped<SurrealDbProviderFactoryBase, SurrealDbProviderFactory>();
 
-//// Register SurrealDb Providers
+// Register SurrealDb Providers
 //builder.Services.AddScoped<ISurrealDbProvider<CreditWallet, WalletResponseDTO>, SurrealDbProvider<CreditWallet, WalletResponseDTO>>();
 //builder.Services.AddScoped<ISurrealDbProvider<Book, BookResponseDTO>, SurrealDbProvider<Book, BookResponseDTO>>();
 
 //ตั้งค่าการเชื่อมต่อ SurrealDB (DB Provider) 
 // 3. เรียกใช้ AddSurreal ด้วยพารามิเตอร์เดียวตามปกติ
-builder.Services.AddSurreal(config => { config.WithEndpoint("http://localhost:8000"); 
-    config.WithNamespace("test"); 
-    config.WithDatabase("test"); 
-    config.WithUsername("db_user"); 
-    config.WithPassword("db_pass"); }); 
+//builder.Services.AddSurreal(config => { config.WithEndpoint("http://localhost:8000"); 
+//    config.WithNamespace("test"); 
+//    config.WithDatabase("test"); 
+//    config.WithUsername("db_user"); 
+//    config.WithPassword("db_pass"); }); 
 
 //ลงทะเบียน Factory เป็น Singleton (ให้มีแค่โรงงานเดียว)
 builder.Services.AddSingleton<ISurrealDbProviderFactory, SurrealDbProviderFactory>();
