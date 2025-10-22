@@ -11,12 +11,19 @@ namespace Nexum.Server.Data.Mapping
         {
             // เพิ่ม Mapping: PenaltyPolicy → PenaltyPolicyDTO
             TypeAdapterConfig<PenaltyPolicy, PenaltyPolicyDTO>.NewConfig()
-            .Map(dest => dest.Id, src => src.Id.GetId())
-            .AfterMapping((src, dest) =>
-            {
-                var aaa = src.Id.GetId();
-                var bbb = src.Id.Table;
-            });
+                .Map(dest => dest.Id, src => src.Id.GetId())
+                .AfterMapping((src, dest) =>
+                {
+                    var aaa = src.Id.GetId();
+                    var bbb = src.Id.Table;
+                });
+
+            // เพิ่ม Mapping: PenaltyPolicyDTO → PenaltyPolicy
+            TypeAdapterConfig<PenaltyPolicyDTO, PenaltyPolicy>.NewConfig()
+                .Map(dest => dest.Id, src => RecordId.From(nameof(PenaltyPolicy), src.Id));
+
+
+
         }
     }
     public static class RecordIdExtensions
