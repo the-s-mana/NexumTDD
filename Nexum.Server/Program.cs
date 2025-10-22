@@ -3,8 +3,10 @@ using MapsterMapper;
 using Nexum.Server.DAC;
 using Nexum.Server.Data;
 using Nexum.Server.Data.Models;
+using Nexum.Server.Models;
 using Nexum.Server.Models.Book;
 using Nexum.Server.Models.CreditWallet;
+using Nexum.Server.Models.Interest;
 using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
 using Nexum.Server.Utils;
@@ -23,19 +25,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Register DAC services
-builder.Services.AddScoped<IProductContactDAC, ProductContactDAC>();
-builder.Services.AddScoped<IAccumulatedInterestDAC, AccumulatedInterestDAC>();
-builder.Services.AddScoped<IInterestTransactionDAC, InterestTransactionDAC>();
 builder.Services.AddScoped<IPenaltyPoliciesDAC, PenaltyPoliciesDAC>();
 builder.Services.AddScoped<ICreditWalletDAC, CreditWalletDAC>();
 builder.Services.AddScoped<IProductContactDAC, ProductContactDAC>();
+builder.Services.AddScoped<IProductContactDAC, ProductContactDAC>();
+builder.Services.AddScoped<IAccumulatedInterestDAC, AccumulatedInterestDAC>();
+builder.Services.AddScoped<IInterestTransactionDAC, InterestTransactionDAC>();
 
 // Register Service services
 builder.Services.AddScoped<IBookService, BookService>();
-builder.Services.AddScoped<IInterestService, InterestService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<IInterestService, InterestService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IContactService, ContactService>();
+
 
 builder.Services.AddScoped<IPenalty, Penalty>();
 builder.Services.AddScoped<IDailyPenalty, DailyPenalty>();
@@ -62,6 +65,8 @@ builder.Services.AddScoped<SurrealDbProviderFactoryBase, SurrealDbProviderFactor
 builder.Services.AddScoped<ISurrealDbProvider<Book, BookResponseDTO>, SurrealDbProvider<Book, BookResponseDTO>>();
 builder.Services.AddScoped<ISurrealDbProvider<CreditWallet, WalletResponseDTO>, SurrealDbProvider<CreditWallet, WalletResponseDTO>>();
 builder.Services.AddScoped<ISurrealDbProvider<ProductContact, ContactResponseDTO>, SurrealDbProvider<ProductContact, ContactResponseDTO>>();
+builder.Services.AddScoped<ISurrealDbProvider<AccumulatedInterest, AccumulatedInterestResponseDTO>, SurrealDbProvider<AccumulatedInterest, AccumulatedInterestResponseDTO>>();
+builder.Services.AddScoped<ISurrealDbProvider<InterestTransaction, CreateInterestTransactionDTO>, SurrealDbProvider<InterestTransaction, CreateInterestTransactionDTO>>();
 
 var app = builder.Build();
 

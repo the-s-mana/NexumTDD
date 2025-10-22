@@ -7,12 +7,11 @@ using System.Threading.Tasks;
 
 namespace Nexum.Server.Models
 {
-    public class InterestTransaction : BaseEntityDTO
+    public class CreateInterestTransactionDTO : BaseEntityDTO
     {
-        [Key]
-        public int InterestTransactionId { get; set; } // รหัสรายการดอกเบี้ย (Statement Interest Id)
+        public string Id { get; set; } // รหัสรายการดอกเบี้ย (Statement Interest Id)
 
-        public int ProductContactId { get; set; } // อ้างอิงไปที่ ProductContact Id
+        public string ProductContactId { get; set; } // อ้างอิงไปที่ ProductContact Id
         public decimal InterestAmount { get; set; } // จำนวนดอกเบี้ยรอบนี้
         public decimal AccumulatedAmount { get; set; } // ยอดดอกเบี้ยสะสม
 

@@ -1,13 +1,18 @@
-﻿using Nexum.Server.Models;
-using Nexum.Server.DAC;
+﻿using Nexum.Server.DAC;
+using Nexum.Server.Data.Models;
+using Nexum.Server.Models;
+using Nexum.Server.Models.Book;
+using Nexum.Server.Models.CreditWallet;
+using Nexum.Server.Models.Interest;
 using Nexum.Server.Utils;
+using SurrealDb.Net.Models;
 
 namespace Nexum.Server.Services
 
 {
     public interface IInterestService
     {
-        CalculateInterestResponse CalculateInterest(CalculateInterestRequest req);
+        Task<CalculateInterestResponse> CalculateInterest(CalculateInterestRequest req);
 
     }
     public class InterestService : IInterestService
@@ -22,7 +27,14 @@ namespace Nexum.Server.Services
             _InterestTransactionDAC = InterestTransactionDAC;
             _dateTimeUtils = dateTimeUtils;
         }
-        public CalculateInterestResponse CalculateInterest(CalculateInterestRequest req)
+
+        private async Task<AccumulatedInterestResponseDTO> GetAccumulatedInterestByProductContactIdAsync(string id)
+        {
+            RecordId ProductContactId = RecordId.From(nameof(ProductContact), id);
+            return await _accumulatedInterestDAC.GetAccumulatedInterestByProductContactIdAsync(ProductContactId);
+        }
+
+        public async Task<CalculateInterestResponse> CalculateInterest(CalculateInterestRequest req)
         {
             // Validate the request
             if (req == null)
@@ -64,23 +76,29 @@ namespace Nexum.Server.Services
             }
 
             // ดึงข้อมูลดอกเบี้ยสะสม
-            AccumulatedInterest accumulatedInterest = _accumulatedInterestDAC.GetAccumulatedInterest(req.ProductContactId);
+            AccumulatedInterestResponseDTO accumulatedInterest = await GetAccumulatedInterestByProductContactIdAsync(req.ProductContactId);
+
+            if (accumulatedInterest == null)
+            {
+                throw new Exception($"ไม่พบข้อมูลดอกเบี้ยสะสมที่มี ProductContactId: {req.ProductContactId}");
+            }
 
             // ตรวจสอบว่าอยู่ในระยะปลอดดอกเบี้ยหรือไม่
             if (req.InterestFreePeriodDays != default(DateTime))
             {
                 // ถ้าวันปัจจุบัน <= วันสิ้นสุดระยะปลอดดอกเบี้ย
-                if (_dateTimeUtils.GetCurrentDateTime() <= req.InterestFreePeriodDays)
+                var currentDate = _dateTimeUtils.GetCurrentDateTime();
+                if (currentDate <= req.InterestFreePeriodDays)
                 {
                     // สร้างรายการดอกเบี้ย หมายเหตุ ยกเว้นการคำนวณ
-                    InterestTransaction InterestTransaction = new InterestTransaction
+                    CreateInterestTransactionDTO create1 = new CreateInterestTransactionDTO
                     {
                         ProductContactId = req.ProductContactId,
                         InterestAmount = 0,
                         AccumulatedAmount = accumulatedInterest.AccumInterestRemain,
                         Remark = "ยกเว้นการคำนวณดอกเบี้ย",
                     };
-                    _InterestTransactionDAC.CreateInterestTransaction(InterestTransaction);
+                    _InterestTransactionDAC.CreateInterestTransactionAsync(create1);
 
                     // ส่งข้อมูลดอกเบี้ยกลับ
                     return new CalculateInterestResponse
@@ -120,7 +138,7 @@ namespace Nexum.Server.Services
             decimal newAccumulatedInterestAmount = accumulatedInterestAmount + interestAmount; // รวมยอดดอกเบี้ยสะสม
 
             // สร้างรายการดอกเบี้ย
-            InterestTransaction createInterestTransaction = new InterestTransaction
+            CreateInterestTransactionDTO create2 = new CreateInterestTransactionDTO
             {
                 ProductContactId = req.ProductContactId,
                 InterestAmount = interestAmount,
@@ -128,13 +146,17 @@ namespace Nexum.Server.Services
                 Remark = "ดอกเบี้ยรอบนี้",
                 // Remark = isMaxInterestAmount ? "ดอกเบี้ยรอบนี้สูงกว่าอัตราดอกเบี้ยสูงสุดต่อรอบบิล" : "ดอกเบี้ยรอบนี้",
             };
-            _InterestTransactionDAC.CreateInterestTransaction(createInterestTransaction);
+            _InterestTransactionDAC.CreateInterestTransactionAsync(create2);
 
             // ดอกเบี้ยรอบนี้เป็น 0
             if (interestAmount != 0)
             {
                 // บันทึกข้อมูลดอกเบี้ยสะสม
-                _accumulatedInterestDAC.UpdateAccumulatedInterest(newAccumulatedInterestAmount);
+                var dataToMerge = new Dictionary<string, object?>();
+
+                dataToMerge.Add(nameof(AccumulatedInterestResponseDTO.AccumInterestRemain), newAccumulatedInterestAmount);
+
+                _accumulatedInterestDAC.UpdateAccumulatedInterestAsync(accumulatedInterest.Id, dataToMerge);
             }
 
             return new CalculateInterestResponse()

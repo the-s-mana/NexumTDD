@@ -2,9 +2,8 @@
 {
     public class BillingResponse
     {
-        public int PenaltyPolicyID { get; set; } // รหัสนโยบายค่าปรับ
-
-
-
+        public string CreditWalletId { get; set; } // รหัสกระเป๋าสินเชื่อ
+        public decimal InterestAmount { get; set; } // จำนวนดอกเบี้ยรอบนี้
+        public decimal AccumulatedAmount { get; set; } // ยอดดอกเบี้ยสะสม
     }
 }

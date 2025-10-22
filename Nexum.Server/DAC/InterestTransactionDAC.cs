@@ -1,19 +1,28 @@
+using Nexum.Server.Data;
+using Nexum.Server.Data.Models;
 using Nexum.Server.Models;
+using Nexum.Server.Models.CreditWallet;
+using static Nexum.Server.Data.IDbProviderFactory;
 
 namespace Nexum.Server.DAC
 {
     public interface IInterestTransactionDAC
     {
-        void CreateInterestTransaction(InterestTransaction InterestTransaction);
+        void CreateInterestTransactionAsync(CreateInterestTransactionDTO create);
     }
 
     public class InterestTransactionDAC : IInterestTransactionDAC
     {
-        public void CreateInterestTransaction(InterestTransaction InterestTransaction)
+        private readonly ISurrealDbProvider<InterestTransaction, CreateInterestTransactionDTO> _interestTransactionDbProvider;
+        public InterestTransactionDAC(
+            SurrealDbProviderFactoryBase surrealDbProviderFactory
+            , ISurrealDbProvider<InterestTransaction, CreateInterestTransactionDTO> interestTransactionDbProvider)
         {
-            Console.WriteLine($"CreateInterestTransaction: {InterestTransaction}");
-            // Implementation to save the InterestTransaction based on the InterestTransaction
-            // throw new NotImplementedException();
+            _interestTransactionDbProvider = surrealDbProviderFactory.Create<InterestTransaction, CreateInterestTransactionDTO>();
+        }
+        public async void CreateInterestTransactionAsync(CreateInterestTransactionDTO create)
+        {
+            await _interestTransactionDbProvider.CreateNexum(create);
         }
     }
 }

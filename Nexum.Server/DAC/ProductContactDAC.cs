@@ -1,7 +1,10 @@
 using Nexum.Server.Data;
 using Nexum.Server.Data.Models;
 using Nexum.Server.Models;
+using Nexum.Server.Models.Book;
 using Nexum.Server.Models.CreditWallet;
+using SurrealDb.Net.Models;
+using System.Text;
 using static Nexum.Server.Data.IDbProviderFactory;
 
 namespace Nexum.Server.DAC
@@ -9,7 +12,7 @@ namespace Nexum.Server.DAC
     public interface IProductContactDAC
     {
         Task<ContactResponseDTO> CreateContactAsync(ContactResponseDTO create);
-        Task<ContactResponseDTO> GetContactByIdAsync(string id);
+        Task<ContactResponseDTO> GetContactByWalletIdAsync(RecordId walletId);
     }
 
     public class ProductContactDAC : IProductContactDAC
@@ -28,9 +31,22 @@ namespace Nexum.Server.DAC
             return await _contactDbProvider.CreateNexum(create);
         }
 
-        public async Task<ContactResponseDTO> GetContactByIdAsync(string id)
+        public async Task<ContactResponseDTO> GetContactByWalletIdAsync(RecordId walletId)
         {
-            return await _contactDbProvider.GetByIdNexum(id);
+            var sqlBuilder = new StringBuilder("SELECT * FROM ProductContact WHERE CreditWalletId = $walletId LIMIT 1");
+            var parameters = new Dictionary<string, object?>
+            {
+                { "walletId", walletId }
+            };
+
+            var resultsList = await _contactDbProvider.RawQueryNexum<ContactResponseDTO>(
+                sqlBuilder.ToString(),
+                parameters
+            );
+
+            var contactDto = resultsList?.FirstOrDefault();
+
+            return contactDto;
         }
     }
 }

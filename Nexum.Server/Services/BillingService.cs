@@ -1,53 +1,72 @@
-﻿using Nexum.Server.Models;
-using Nexum.Server.DAC;
+﻿using Nexum.Server.DAC;
+using Nexum.Server.Data.Models;
+using Nexum.Server.Models;
+using Nexum.Server.Models.CreditWallet;
 using Nexum.Server.Services.Penalty;
+using SurrealDb.Net.Models;
 
 namespace Nexum.Server.Services
 
 {
     public interface IBillingService
     {
-        BillingResponse ProcessAndCalculateBill(BillingRequest billingRequest);
-
+        Task<BillingResponse> ProcessAndCalculateBill(BillingRequest billingRequest);
     }
     public class BillingService : IBillingService
     {
         private readonly IInterestService _interestService;
-        private readonly ICreditWalletDAC _creditWalletDAC;
-        private readonly IProductContactDAC _productContactDAC;
+        private readonly IWalletService _walletService;
+        private readonly IContactService _contactService;
 
-        public BillingService(IInterestService interestService
-        , ICreditWalletDAC creditWalletDAC, IProductContactDAC productContactDAC)
+        public BillingService(IInterestService interestService,
+            IWalletService walletService,
+            IContactService contactService)
         {
             _interestService = interestService;
-            _creditWalletDAC = creditWalletDAC;
-            _productContactDAC = productContactDAC;
+            _walletService = walletService;
+            _contactService = contactService;
         }
 
-        public BillingResponse ProcessAndCalculateBill(BillingRequest billingRequest)
+        public async Task<BillingResponse> ProcessAndCalculateBill(BillingRequest billingRequest)
         {
-            //// ดึงข้อมูลกระเป๋าสินเชื่อ และ สัญญาสินเชื่อ
-            //CreditWallet creditWallet = _creditWalletDAC.GetCreditWallet(billingRequest.CreditWalletId);
-            //ProductContact productContact = _productContactDAC.GetProductContact(billingRequest.CreditWalletId);
+            // ดึงข้อมูลกระเป๋าสินเชื่อ และ สัญญาสินเชื่อ
+            WalletResponseDTO walletDTO = await _walletService.GetWalletByIdAsync(billingRequest.CreditWalletId);
+            ContactResponseDTO contactDTO = await _contactService.GetContactByWalletIdAsync(billingRequest.CreditWalletId);
 
-            //// เงินต้นคงเหลือมากกว่า 0
-            //if (creditWallet.PrincipalBalance > 0)
-            //{
-            //    // คำนวณค่าปรับ
+            if (walletDTO == null)
+            {
+                throw new Exception($"ไม่พบกระเป๋าสินเชื่อที่มี ID: {billingRequest.CreditWalletId}");
+            }
 
-            //    // คำนวณดอกเบี้ย
-            //    CalculateInterestRequest calculateInterestRequest = new CalculateInterestRequest()
-            //    {
-            //        PrincipalBalance = creditWallet.PrincipalBalance,
-            //        InterestRate = productContact.InterestRate,
-            //        InterestType = productContact.InterestType,
-            //        InterestFreePeriodDays = productContact.InterestFreePeriodDays,
-            //        MaxInterestAmount = productContact.MaxInterestRatePerBilling
-            //    };
-            //    CalculateInterestResponse calculateInterestResponse = _interestService.CalculateInterest(calculateInterestRequest);
-            //}
+            if (contactDTO == null)
+            {
+                throw new Exception($"ไม่พบสัญญาสินเชื่อที่มี ID: {billingRequest.CreditWalletId}");
+            }
 
-            return new BillingResponse();
+            BillingResponse billingResponse = new BillingResponse();
+            // เงินต้นคงเหลือมากกว่า 0
+            if (walletDTO.PrincipalBalance > 0)
+            {
+                // คำนวณค่าปรับ
+
+                // คำนวณดอกเบี้ย
+                CalculateInterestRequest calculateInterestRequest = new CalculateInterestRequest()
+                {
+                    PrincipalBalance = walletDTO.PrincipalBalance,
+                    InterestRate = contactDTO.InterestRate,
+                    InterestType = contactDTO.InterestType,
+                    InterestFreePeriodDays = contactDTO.InterestFreePeriodDays ?? default(DateTime),
+                    MaxInterestAmount = contactDTO.MaxInterestRatePerBilling,
+                    ProductContactId = contactDTO.Id
+                };
+                CalculateInterestResponse calculateInterestResponse = await _interestService.CalculateInterest(calculateInterestRequest);
+                billingResponse.CreditWalletId = billingRequest.CreditWalletId;
+                billingResponse.InterestAmount = calculateInterestResponse.InterestAmount;
+            }
+
+            billingResponse.CreditWalletId = billingRequest.CreditWalletId;
+
+            return billingResponse;
         }
     }
 }

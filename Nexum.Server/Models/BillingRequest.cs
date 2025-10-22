@@ -1,7 +1,10 @@
-﻿namespace Nexum.Server.Models
+﻿using System.ComponentModel;
+
+namespace Nexum.Server.Models
 {
     public class BillingRequest
     {
-        public int CreditWalletId { get; set; } // รหัสกระเป๋าสินเชื่อ
+        [DefaultValue("j01mpkhpnolx32ql6r46")]
+        public string CreditWalletId { get; set; } // รหัสกระเป๋าสินเชื่อ
     }
 }

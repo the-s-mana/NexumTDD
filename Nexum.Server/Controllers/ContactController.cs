@@ -23,10 +23,10 @@ public class ContactController : ControllerBase
         return Ok(res);
     }
 
-    [HttpGet("GetContactById/{id}")]
-    public async Task<ActionResult<ContactResponseDTO>> GetContactById(string id)
+    [HttpGet("GetContactByWalletId/{id}")]
+    public async Task<ActionResult<ContactResponseDTO>> GetContactByWalletId(string id)
     {
-        var bookDto = await _contactService.GetContactByIdAsync(id);
+        var bookDto = await _contactService.GetContactByWalletIdAsync(id);
 
         if (bookDto == null)
             return NotFound();

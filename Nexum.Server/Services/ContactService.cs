@@ -1,13 +1,16 @@
 ﻿using MapsterMapper;
 using Nexum.Server.DAC;
+using Nexum.Server.Data.Models;
+using Nexum.Server.Models;
 using Nexum.Server.Models.CreditWallet;
+using SurrealDb.Net.Models;
 
 namespace Nexum.Server.Services
 {
     public interface IContactService
     {
         Task<ContactResponseDTO> CreateContactAsync(CreateContactRequestDTO creatRequest);
-        Task<ContactResponseDTO> GetContactByIdAsync(string id);
+        Task<ContactResponseDTO> GetContactByWalletIdAsync(string id);
     }
     public class ContactService : IContactService
     {
@@ -44,9 +47,10 @@ namespace Nexum.Server.Services
             };
             return await _contactDac.CreateContactAsync(create);
         }
-        public async Task<ContactResponseDTO> GetContactByIdAsync(string id)
+        public async Task<ContactResponseDTO> GetContactByWalletIdAsync(string id)
         {
-            return await _contactDac.GetContactByIdAsync(id);
+            RecordId walletRecordId = RecordId.From(nameof(CreditWallet), id);
+            return await _contactDac.GetContactByWalletIdAsync(walletRecordId);
         }
 
     }

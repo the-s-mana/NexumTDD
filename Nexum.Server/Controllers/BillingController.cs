@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Nexum.Server.Models;
+using Nexum.Server.Models.CreditWallet;
 using Nexum.Server.Services;
 
 namespace Nexum.Server.Controllers
@@ -16,13 +17,13 @@ namespace Nexum.Server.Controllers
             _billingService = billingService;
         }
 
-        [HttpPost(Name = "CalculateBilling")]
-        public BillingResponse CalculateBilling(BillingRequest billingRequest)
+        [HttpPost]
+        [Route("CalculateBilling")]
+        public async Task<ActionResult<BillingResponse>> CalculateBilling(BillingRequest contact)
         {
-            return _billingService.ProcessAndCalculateBill(billingRequest);
+            var res = await _billingService.ProcessAndCalculateBill(contact);
+
+            return Ok(res);
         }
-
-
-
     }
 }
