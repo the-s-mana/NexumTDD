@@ -12,7 +12,7 @@ namespace Nexum.Server.Services
 {
     public interface IInterestService
     {
-        Task<CalculateInterestResponse> CalculateInterest(CalculateInterestRequest req);
+        Task<CalculateInterestResponse> CalculateInterestAsync(CalculateInterestRequest req);
 
     }
     public class InterestService : IInterestService
@@ -34,7 +34,7 @@ namespace Nexum.Server.Services
             return await _accumulatedInterestDAC.GetAccumulatedInterestByProductContactIdAsync(ProductContactId);
         }
 
-        public async Task<CalculateInterestResponse> CalculateInterest(CalculateInterestRequest req)
+        public async Task<CalculateInterestResponse> CalculateInterestAsync(CalculateInterestRequest req)
         {
             // Validate the request
             if (req == null)

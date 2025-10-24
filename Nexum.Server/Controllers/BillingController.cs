@@ -21,7 +21,7 @@ namespace Nexum.Server.Controllers
         [Route("CalculateBilling")]
         public async Task<ActionResult<BillingResponse>> CalculateBilling(BillingRequest contact)
         {
-            var res = await _billingService.ProcessAndCalculateBill(contact);
+            var res = await _billingService.ProcessAndCalculateBillAsync(contact);
 
             return Ok(res);
         }

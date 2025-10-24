@@ -10,7 +10,7 @@ namespace Nexum.Server.Services
 {
     public interface IBillingService
     {
-        Task<BillingResponse> ProcessAndCalculateBill(BillingRequest billingRequest);
+        Task<BillingResponse> ProcessAndCalculateBillAsync(BillingRequest billingRequest);
     }
     public class BillingService : IBillingService
     {
@@ -27,7 +27,7 @@ namespace Nexum.Server.Services
             _contactService = contactService;
         }
 
-        public async Task<BillingResponse> ProcessAndCalculateBill(BillingRequest billingRequest)
+        public async Task<BillingResponse> ProcessAndCalculateBillAsync(BillingRequest billingRequest)
         {
             // ดึงข้อมูลกระเป๋าสินเชื่อ และ สัญญาสินเชื่อ
             WalletResponseDTO walletDTO = await _walletService.GetWalletByIdAsync(billingRequest.CreditWalletId);
@@ -59,7 +59,7 @@ namespace Nexum.Server.Services
                     MaxInterestAmount = contactDTO.MaxInterestRatePerBilling,
                     ProductContactId = contactDTO.Id
                 };
-                CalculateInterestResponse calculateInterestResponse = await _interestService.CalculateInterest(calculateInterestRequest);
+                CalculateInterestResponse calculateInterestResponse = await _interestService.CalculateInterestAsync(calculateInterestRequest);
                 billingResponse.CreditWalletId = billingRequest.CreditWalletId;
                 billingResponse.InterestAmount = calculateInterestResponse.InterestAmount;
             }
