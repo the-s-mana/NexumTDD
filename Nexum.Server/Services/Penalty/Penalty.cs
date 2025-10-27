@@ -1,158 +1,114 @@
-﻿using Nexum.Server.Models;
+﻿using System;
+using Nexum.Server.DAC;
 using Nexum.Server.Models.Penalty;
 
 namespace Nexum.Server.Services.Penalty
 {
     public interface IPenalty
     {
-        PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest);
+        Task<PenaltyResponse> GetPenaltyAsync(PenaltyRequest penaltyRequest);
+        // ถ้าจำเป็นต้องเก็บ sync wrapper ไว้จริง ๆ ใส่ [Obsolete] จะดีกว่า
+        // PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest) => GetPenaltyAsync(penaltyRequest).GetAwaiter().GetResult();
     }
+
     public class Penalty : IPenalty
     {
-        public readonly IPercentagePenalty percentagePenalty;
-        public readonly IPenaltyPolicies penaltyPolicies;
-        public readonly IDailyPenalty dailyPenalty;
-        public readonly IFixedPenalty fixedPenalty;
-        public readonly IDateTimeProvider _clock;
-        public Penalty(IPercentagePenalty percentagePenalty, IPenaltyPolicies penaltyPolicies, IDailyPenalty dailyPenalty, IFixedPenalty fixedPenalty, IDateTimeProvider? clock = null)
+        private readonly IPercentagePenalty percentagePenalty;
+        private readonly IDailyPenalty dailyPenalty;
+        private readonly IFixedPenalty fixedPenalty;
+        private readonly IPenaltyPoliciesDAC penaltyPoliciesDAC;
+        private readonly IDateTimeProvider clock;
+
+        public Penalty(
+            IPercentagePenalty percentagePenalty,
+            IDailyPenalty dailyPenalty,
+            IFixedPenalty fixedPenalty,
+            IPenaltyPoliciesDAC penaltyPoliciesDAC,
+            IDateTimeProvider? clock = null)
         {
             this.percentagePenalty = percentagePenalty;
-            this.penaltyPolicies = penaltyPolicies;
             this.dailyPenalty = dailyPenalty;
             this.fixedPenalty = fixedPenalty;
-            this._clock = clock ?? new SystemDateTimeProvider();
+            this.penaltyPoliciesDAC = penaltyPoliciesDAC;
+            this.clock = clock ?? new SystemDateTimeProvider();
         }
-        public PenaltyResponse GetPenalty(PenaltyRequest penaltyRequest)
+
+        public async Task<PenaltyResponse> GetPenaltyAsync(PenaltyRequest req)
         {
-            #region Validation
-            if (penaltyRequest == null)
-                throw new ArgumentNullException(nameof(penaltyRequest));
+            // ----- Validation -----
+            if (req is null) throw new ArgumentNullException(nameof(req));
+            if (req.OutstandingBalance <= 0) throw new ArgumentOutOfRangeException(nameof(req.OutstandingBalance), "OutstandingBalance must be greater than zero.");
+            if (req.DueDate == default(DateTime)) throw new ArgumentOutOfRangeException(nameof(req.DueDate), "DueDate must be a valid date.");
+            if (req.UserId <= 0) throw new ArgumentOutOfRangeException(nameof(req.UserId), "UserId must be greater than zero.");
+            if (req.ActiveStatus == null) throw new ArgumentException("ActiveStatus must be either 'Active' or 'Inactive'.");
+            if (!string.Equals(req.ActiveStatus, "Active", StringComparison.OrdinalIgnoreCase) && !string.Equals(req.ActiveStatus, "Inactive", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("ActiveStatus must be either 'Active' or 'Inactive'.", nameof(req.ActiveStatus));
+            if (!string.Equals(req.ActiveStatus, "Active", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Cannot calculate penalty for inactive users.", nameof(req.ActiveStatus));
 
-            if (penaltyRequest.OutstandingBalance <= 0)
-                throw new ArgumentException("OutstandingBalance must be greater than zero.");
+            var now = clock.Now;
+            if (req.DueDate > now) throw new InvalidOperationException("DueDate cannot be in the future.");
 
-            if (penaltyRequest.DueDate == default(DateTime))
-                throw new ArgumentException("DueDate must be a valid date.");
+            // ----- Load policy (DTO) -----
+            var policyDto = await penaltyPoliciesDAC.GetPenaltyPolicyByIdXAsync(req.PenaltyPolicyID);
+            if (policyDto is null)
+                throw new KeyNotFoundException($"Penalty policy {req.PenaltyPolicyID} not found.");
 
-            if (string.IsNullOrEmpty(penaltyRequest.ActiveStatus) || (penaltyRequest.ActiveStatus != "Active" && penaltyRequest.ActiveStatus != "Inactive"))
-                throw new ArgumentException("ActiveStatus must be either 'Active' or 'Inactive'.");
+            // ----- Compute minimum payment -----
+            var minPayment = Math.Round(
+                req.OutstandingBalance * (Convert.ToDecimal(policyDto.MinimumPaymentRate) / 100m),
+                2, MidpointRounding.AwayFromZero);
 
-            if (penaltyRequest.UserId <= 0)
-                throw new ArgumentException("UserId must be greater than zero.");
-
-            if (penaltyRequest.ActiveStatus == "Inactive")
-                throw new InvalidOperationException("Cannot calculate penalty for inactive users.");
-
-            var now = _clock.Now;
-            Console.WriteLine($"Current DateTime: {now}");
-            if (penaltyRequest.DueDate > now)
-                throw new InvalidOperationException("DueDate cannot be in the future.");
-
-            #endregion
-
-            PenaltyResponse penaltyResponse = new PenaltyResponse();
-
-            //Get Penalty Policies By Id (Config Penalty Policies)
-            ProductContact PenaltyPolicies = penaltyPolicies.penaltyPolicies(new PenaltyPoliciesRequest { PenaltyPolicyID = penaltyRequest.PenaltyPolicyID });
-
-            //คำนวนยอดชำระขั้นต่ำ
-            decimal minPayment = penaltyRequest.OutstandingBalance * (PenaltyPolicies.MinimumPaymentRate / 100); //
-
-            penaltyResponse.UserId = penaltyRequest.UserId;
-            penaltyResponse.OutstandingBalance = penaltyRequest.OutstandingBalance;
-            penaltyResponse.MinimumPayment = minPayment;
-            penaltyResponse.PaymentAmount = penaltyRequest.PaymentAmount;
-
-            //ตรวจสอบเลย วันครบกำหนด
-            var overdue = now - penaltyRequest.DueDate;
-            bool isOverdue = overdue > TimeSpan.Zero;
-            bool underMin = penaltyRequest.PaymentAmount < minPayment;
-            
-            if(!(isOverdue || underMin))
+            var resp = new PenaltyResponse
             {
-                penaltyResponse.PenaltyAmount = 0;
-                return penaltyResponse;
-            }
-            
-            var grace = TimeSpan.FromDays(PenaltyPolicies.PenaltyFreePeriodDays);
-            if(overdue <= grace)
-            {
-                penaltyResponse.PenaltyAmount = 0;
-                return penaltyResponse;
-            }
-            
-            var amountBase = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount;
-            if (amountBase < 0) amountBase = 0;
-            
-            int chargeDays = (int)Math.Ceiling((overdue - grace).TotalDays);
-            if(chargeDays < 0) chargeDays = 0;
-            PenaltyContext context = new PenaltyContext
-            {
-                OutstandingBalance = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount,
-                OverdueDays = chargeDays,
-                MaxPenalty = PenaltyPolicies.MaxPenalty,
-                TotalCap = PenaltyPolicies.TotalCap,
-                Percentage = PenaltyPolicies.PenaltyRate,
-                FixedAmount = PenaltyPolicies.FixedAmount,
+                UserId = req.UserId,
+                OutstandingBalance = req.OutstandingBalance,
+                MinimumPayment = minPayment,
+                PaymentAmount = req.PaymentAmount
             };
-            switch (PenaltyPolicies.PenaltyType)
-            {
-                case "Percentage":
-                    penaltyResponse.PenaltyAmount = percentagePenalty.Calculate(context);
-                    break;
-                case "Daily":
-                    penaltyResponse.PenaltyAmount = dailyPenalty.Calculate(context);
-                    break;
-                case "Fixed":
-                    penaltyResponse.PenaltyAmount = fixedPenalty.Calculate(context);
-                    break;
-                default:
-                    throw new NotSupportedException($"Penalty type '{PenaltyPolicies.PenaltyPolicyID}' is not supported.");
-            }
-            
-            return penaltyResponse;
-            //if (penaltyRequest.DueDate.Date < today || penaltyRequest.PaymentAmount < minPayment)
-            //{
-            //    int OverdueDays = Math.Max(0, (today - penaltyRequest.DueDate.Date).Days); //คำนวณจำนวนวันที่เกินกำหนด
-            //    // ควรคำนวนวันที่ปรับใหม่ไหม เช่น OverdueDaysNew = OverdueDays - GracePeriodDays
-            //    if (OverdueDays > PenaltyPolicies.PenaltyFreePeriodDays)
-            //    {
-            //        PenaltyContext context = new PenaltyContext
-            //        {
-            //            OutstandingBalance = penaltyRequest.OutstandingBalance - penaltyRequest.PaymentAmount,
-            //            OverdueDays = OverdueDays,
-            //            MaxPenalty = PenaltyPolicies.MaxPenalty,
-            //            TotalCap = PenaltyPolicies.TotalCap,
-            //            Percentage = PenaltyPolicies.PenaltyRate,
-            //            FixedAmount = PenaltyPolicies.FixedAmount,
-            //        };
-            //        switch (PenaltyPolicies.PenaltyType)
-            //        {
-            //            case "Percentage":
-            //                penaltyResponse.PenaltyAmount = percentagePenalty.Calculate(context);
-            //                break;
-            //            case "Daily":
-            //                penaltyResponse.PenaltyAmount = dailyPenalty.Calculate(context);
-            //                break;
-            //            case "Fixed":
-            //                penaltyResponse.PenaltyAmount = fixedPenalty.Calculate(context);
-            //                break;
-            //            default:
-            //                throw new NotSupportedException($"Penalty type '{PenaltyPolicies.PenaltyPolicyID}' is not supported.");
-            //        }
-            //    }
-            //    else
-            //    {
-            //        penaltyResponse.PenaltyAmount = 0;
-            //    }
-            //}
-            //else
-            //{
-            //    penaltyResponse.PenaltyAmount = 0;
-            //    return penaltyResponse;
-            //}
 
-            //return penaltyResponse;
+            // ----- Early exits (no penalty) -----
+            var overdueDays = (now.Date - req.DueDate.Date).Days;         // integer days overdue
+            var underMin = req.PaymentAmount < minPayment;
+
+            if (overdueDays <= 0 && !underMin)
+            {
+                resp.PenaltyAmount = 0;
+                return resp;
+            }
+
+            var inGrace = overdueDays <= policyDto.PenaltyFreePeriodDays;
+            var chargeDays = inGrace ? 0 : overdueDays;
+            if (chargeDays == 0 && !underMin)
+            {
+                resp.PenaltyAmount = 0;
+                return resp;
+            }
+
+            // ----- Base amount to charge -----
+            var amountBase = Math.Max(0m, req.OutstandingBalance - req.PaymentAmount);
+
+            var context = new PenaltyContext
+            {
+                OutstandingBalance = amountBase,
+                OverdueDays = chargeDays,
+                MaxPenalty = Convert.ToDecimal(policyDto.MaxPenalty),
+                TotalCap = Convert.ToDecimal(policyDto.TotalCap),
+                Percentage = Convert.ToDecimal(policyDto.PenaltyRate),
+                FixedAmount = Convert.ToDecimal(policyDto.FixedAmount),
+            };
+
+            // ----- Strategy -----
+            decimal penalty = policyDto.PenaltyType switch
+            {
+                "Percentage" => percentagePenalty.Calculate(context),
+                "Daily" => dailyPenalty.Calculate(context),
+                "Fixed" => fixedPenalty.Calculate(context),
+                _ => throw new NotSupportedException($"Penalty type '{policyDto.PenaltyType}' is not supported.")
+            };
+
+            resp.PenaltyAmount = penalty;
+            return resp;
         }
     }
 }

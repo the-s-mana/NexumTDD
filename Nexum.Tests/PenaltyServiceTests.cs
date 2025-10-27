@@ -1,4 +1,6 @@
 ﻿using Moq;
+using Nexum.Server.API.Dto;
+using Nexum.Server.DAC;
 using Nexum.Server.Models;
 using Nexum.Server.Models.Penalty;
 using Nexum.Server.Services;
@@ -9,19 +11,37 @@ namespace Nexum.Tests
     public class PenaltyServiceTests
     {
         private readonly Mock<IPercentagePenalty> _percentage = new();
-        private readonly Mock<IPenaltyPolicies> _policies = new();
         private readonly Mock<IDailyPenalty> _daily = new();
         private readonly Mock<IFixedPenalty> _fixed = new();
+        private readonly Mock<IPenaltyPoliciesDAC> _policiesDac = new();
         private readonly Mock<IDateTimeProvider> _clock = new();
+
+        private static PenaltyPolicyResponseDTO ToDto(ProductContact x) => new PenaltyPolicyResponseDTO
+        {
+            PenaltyPolicyID = x.PenaltyPolicyID,
+            PolicyName = x.PolicyName,
+            PenaltyType = x.PenaltyType,
+            PenaltyRate = (decimal)x.PenaltyRate,
+            FixedAmount = (decimal)x.FixedAmount,
+            MaxPenalty = (decimal)x.MaxPenalty,
+            TotalCap = (decimal)x.TotalCap,
+            PenaltyFreePeriodDays = x.PenaltyFreePeriodDays,
+            MinimumPaymentRate = (decimal)x.MinimumPaymentRate
+        };
+
         private Penalty CreateSut(DateTime frozenNow)
         {
             _clock.Setup(c => c.Now).Returns(frozenNow);
 
-            _policies.Setup(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()))
-                    .Returns((PenaltyPoliciesRequest req) =>
-                        _policyList.Single(x => x.PenaltyPolicyID == req.PenaltyPolicyID));
+            _policiesDac
+           .Setup(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()))
+           .ReturnsAsync((int id) =>
+           {
+               var p = _policyList.SingleOrDefault(z => z.PenaltyPolicyID == id);
+               return p is null ? null : ToDto(p);
+           });
 
-            return new Penalty(_percentage.Object, _policies.Object, _daily.Object, _fixed.Object, _clock.Object);
+            return new Penalty(_percentage.Object, _daily.Object, _fixed.Object, _policiesDac.Object, _clock.Object);
         }
         #region Policy List
         private readonly List<ProductContact> _policyList = new()
@@ -62,7 +82,7 @@ namespace Nexum.Tests
 
         #region Normal Cases
         [Fact(DisplayName = "Normal Case 1: จ่ายขั้นต่ำ + ตรงเวลา -> ไม่คิดค่าปรับ")]
-        public void Normal_1_MinPayment_OnTime_NoPenalty()
+        public async Task Normal_1_MinPayment_OnTime_NoPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 12, 0, 0);
@@ -84,23 +104,22 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
+            Console.WriteLine($"expeted penalty amount: {expected.PenaltyAmount}, result penalty amount: {result.PenaltyAmount}");
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.Equal(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Normal Case 2: จ่ายเต็มจำนวน + ตรงเวลา -> ไม่คิดค่าปรับ")]
-        public void Normal_2_FullPayment_OnTime_NoPenalty()
+        public async Task Normal_2_FullPayment_OnTime_NoPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -122,16 +141,14 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.Equal(expected.PaymentAmount, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
@@ -176,7 +193,7 @@ namespace Nexum.Tests
         //}
 
         [Fact(DisplayName = "Normal Case 4: ชำระถึงขั้นต่ำและอยู่ในช่วงผ่อนผัน -> ไม่คิดค่าปรับ")]
-        public void Normal_4_MinPayment_WithinGrace_NoPenalty()
+        public async Task Normal_4_MinPayment_WithinGrace_NoPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -198,23 +215,21 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.Equal(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Normal Case 5: ชำระไม่ถึงขั้นต่ำและอยู่ในช่วงผ่อนผัน -> ไม่คิดค่าปรับ")]
-        public void Normal_5_UnderMinPayment_WithinGrace_NoPenalty()
+        public async Task Normal_5_UnderMinPayment_WithinGrace_NoPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -236,23 +251,21 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.NotEqual(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Normal Case 6: ชำระไม่ถึงขั้นต่ำและเลยช่วงผ่อนผัน -> คิดค่าปรับ")]
-        public void Normal_6_UnderMinPayment_BeyondGrace_WithPenalty()
+        public async Task Normal_6_UnderMinPayment_BeyondGrace_WithPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -277,23 +290,20 @@ namespace Nexum.Tests
                   .Returns((PenaltyContext ctx) =>
                       Math.Min(ctx.OverdueDays * ctx.FixedAmount, ctx.TotalCap));
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.NotEqual(expected.MinimumPayment, result.PaymentAmount);
-            Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Once());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Normal Case 7: เกินกำหนดชำระ -> คิดค่าปรับแบบ Fixed")]
-        public void Normal_7_Overdue_FixedPenalty()
+        public async Task Normal_7_Overdue_FixedPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -316,22 +326,20 @@ namespace Nexum.Tests
             _fixed.Setup(f => f.Calculate(It.IsAny<PenaltyContext>()))
                   .Returns((PenaltyContext ctx) => ctx.FixedAmount);
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Once());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Normal Case 8: ชำระถึงขั้นต่ำและอยู่ในช่วงผ่อนผัน -> ไม่คิดค่าปรับ")]
-        public void Normal_8_MinPayment_WithinGrace_Percentage()
+        public async Task Normal_8_MinPayment_WithinGrace_Percentage()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -353,23 +361,21 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             //Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             //Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.Equal(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Normal Case 9: ชำระไม่ถึงขั้นต่ำและอยู่ในช่วงผ่อนผัน -> ไม่คิดค่าปรับ")]
-        public void Normal_9_UnderMinPayment_WithinGrace_Percentage()
+        public async Task Normal_9_UnderMinPayment_WithinGrace_Percentage()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -391,23 +397,21 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.NotEqual(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Normal Case 10: ชำระไม่ถึงขั้นต่ำและเลยช่วงผ่อนผัน -> คิดค่าปรับแบบ Percentage")]
-        public void Normal_10_UnderMinPayment_BeyondGrace_Percentage()
+        public async Task Normal_10_UnderMinPayment_BeyondGrace_Percentage()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -432,16 +436,14 @@ namespace Nexum.Tests
                        .Returns((PenaltyContext ctx) =>
                            Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.NotEqual(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Once());
@@ -449,7 +451,7 @@ namespace Nexum.Tests
         #endregion
         #region Alternative Cases
         [Fact(DisplayName = "Alternative Case 1: ชำระไม่ถึงขั้นต่ำ + เกินช่วงผ่อนผันและชนเพดาน TotalCap")]
-        public void Alternative_1_UnderMinPayment_BeyondGrace_Daily_CapPenalty()
+        public async Task Alternative_1_UnderMinPayment_BeyondGrace_Daily_CapPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -474,23 +476,21 @@ namespace Nexum.Tests
                   .Returns((PenaltyContext ctx) =>
                       Math.Min(ctx.OverdueDays * ctx.FixedAmount, ctx.TotalCap));
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.NotEqual(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Once());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Alternative Case 2: ชำระบางส่วนแต่ไม่ถึงขั้นต่ำ + เกินช่วงผ่อนผัน -> คิดค่าปรับแบบ Percentage")]
-        public void Alternative_2_PartialPayment_UnderMin_BeyondGrace_Percentage()
+        public async Task Alternative_2_PartialPayment_UnderMin_BeyondGrace_Percentage()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -515,23 +515,21 @@ namespace Nexum.Tests
                        .Returns((PenaltyContext ctx) =>
                            Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.NotEqual(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Once());
         }
 
         [Fact(DisplayName = "Alternative Case 3: ชำระไม่ถึงขั้นต่ำ + เกินช่วงผ่อนผันและชนเพดาน MaxPenalty")]
-        public void Alternative_3_UnderMinPayment_BeyondGrace_Percentage_CapPenalty()
+        public async Task Alternative_3_UnderMinPayment_BeyondGrace_Percentage_CapPenalty()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -556,16 +554,14 @@ namespace Nexum.Tests
                        .Returns((PenaltyContext ctx) =>
                            Math.Min(ctx.OutstandingBalance * (ctx.Percentage / 100), ctx.MaxPenalty));
             // Act
-            var result = sut.GetPenalty(request);
+            var result = await sut.GetPenaltyAsync(request);
             // Assert
             Assert.NotNull(result);
             Assert.Equal(expected.UserId, result.UserId);
             Assert.Equal(expected.OutstandingBalance, result.OutstandingBalance);
             Assert.NotEqual(expected.MinimumPayment, result.PaymentAmount);
             Assert.Equal(expected.PenaltyAmount, result.PenaltyAmount);
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(request.PenaltyPolicyID), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Once());
@@ -573,23 +569,25 @@ namespace Nexum.Tests
         #endregion
         #region Exception Cases
         [Fact(DisplayName = "Exception Case 1: Request เป็น null -> ArgumentNullException")]
-        public void Exception_1_Request_Null_ArgumentNullException()
+        public async Task Exception_1_Request_Null_ArgumentNullException()
         {
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
             // Arrange
             PenaltyRequest? request = null;
             var sut = CreateSut(frozenNow);
             // Act & Assert
-            var exception = Assert.Throws<ArgumentNullException>(() => sut.GetPenalty(request));
-            Assert.Equal("Value cannot be null. (Parameter 'penaltyRequest')", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            var exception = await Assert.ThrowsAsync<ArgumentNullException>(
+                () => sut.GetPenaltyAsync(request)
+            );
+            Assert.Equal("Value cannot be null. (Parameter 'req')", exception.Message);
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 2: OutstandingBalance <= 0 -> ArgumentException")]
-        public void Exception_2_OutstandingBalance_Zero_ArgumentException()
+        public async Task Exception_2_OutstandingBalance_Zero_ArgumentException()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -604,16 +602,18 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
-            Assert.Equal("OutstandingBalance must be greater than zero.", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                () => sut.GetPenaltyAsync(request)
+            );
+            Assert.StartsWith("OutstandingBalance must be greater than zero.", exception.Message);
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 3: UserId <= 0 -> ArgumentException")]
-        public void Exception_3_UserId_Zero_ArgumentException()
+        public async Task Exception_3_UserId_Zero_ArgumentException()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -628,16 +628,18 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
-            Assert.Equal("UserId must be greater than zero.", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                () => sut.GetPenaltyAsync(request)
+            );
+            Assert.StartsWith("UserId must be greater than zero.", exception.Message);
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 4: ActiveStatus เป็น null -> ArgumentException")]
-        public void Exception_4_ActiveStatus_Null_ArgumentException()
+        public async Task Exception_4_ActiveStatus_Null_ArgumentException()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -652,16 +654,18 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => sut.GetPenaltyAsync(request)
+            );
             Assert.Equal("ActiveStatus must be either 'Active' or 'Inactive'.", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 5: ActiveStatus เป็นค่าอื่นที่ไม่ใช่ Active หรือ Inactive -> ArgumentException")]
-        public void Exception_5_ActiveStatus_Invalid_ArgumentException()
+        public async Task Exception_5_ActiveStatus_Invalid_ArgumentException()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -676,16 +680,18 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
-            Assert.Equal("ActiveStatus must be either 'Active' or 'Inactive'.", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => sut.GetPenaltyAsync(request)
+            );
+            Assert.StartsWith("ActiveStatus must be either 'Active' or 'Inactive'.", exception.Message);
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 6: ActiveStatus เป็น Inactive -> InvalidOperationException")]
-        public void Exception_6_ActiveStatus_Inactive_InvalidOperationException()
+        public async Task Exception_6_ActiveStatus_Inactive_InvalidOperationException()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -700,16 +706,18 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => sut.GetPenalty(request));
-            Assert.Equal("Cannot calculate penalty for inactive users.", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => sut.GetPenaltyAsync(request)
+            );
+            Assert.StartsWith("Cannot calculate penalty for inactive users.", exception.Message);
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 7: DueDate ไม่สอดคล้องกับปัจจุบัน -> ArgumentException")]
-        public void Exception_7_DueDate_Null_ArgumentException()
+        public async Task Exception_7_DueDate_Null_ArgumentException()
         {
             // Arrange
             var request = new PenaltyRequest
@@ -723,16 +731,18 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(default(DateTime));
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() => sut.GetPenalty(request));
-            Assert.Equal("DueDate must be a valid date.", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                () => sut.GetPenaltyAsync(request)
+            );
+            Assert.StartsWith("DueDate must be a valid date.", exception.Message);
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 8: DueDate เป็นวันที่ในอนาคต -> InvalidOperationException")]
-        public void Exception_8_DueDate_Future_InvalidOperationException()
+        public async Task Exception_8_DueDate_Future_InvalidOperationException()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -747,16 +757,18 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => sut.GetPenalty(request));
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => sut.GetPenaltyAsync(request)
+            );
             Assert.Equal("DueDate cannot be in the future.", exception.Message);
-            _policies.Verify(p => p.penaltyPolicies(It.IsAny<PenaltyPoliciesRequest>()), Times.Never());
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Never);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
         }
 
         [Fact(DisplayName = "Exception Case 9: PenaltyPolicyID ไม่ตรงกับนโยบายที่มีอยู่ -> KeyNotFoundException")]
-        public void Exception_9_PenaltyPolicyID_NotFound_KeyNotFoundException()
+        public async Task Exception_9_PenaltyPolicyID_NotFound_KeyNotFoundException()
         {
             // Arrange
             var frozenNow = new DateTime(2025, 10, 15, 10, 30, 0);
@@ -771,10 +783,10 @@ namespace Nexum.Tests
             };
             var sut = CreateSut(frozenNow);
             //Act & Assert
-            Assert.Throws<InvalidOperationException>(() => sut.GetPenalty(request));
-            _policies.Verify(p => p.penaltyPolicies(
-                It.Is<PenaltyPoliciesRequest>(x => x.PenaltyPolicyID == request.PenaltyPolicyID)),
-                Times.Once());
+            var exception = await Assert.ThrowsAsync<KeyNotFoundException>(
+                () => sut.GetPenaltyAsync(request)
+            );
+            _policiesDac.Verify(d => d.GetPenaltyPolicyByIdXAsync(It.IsAny<int>()), Times.Once);
             _daily.Verify(d => d.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _fixed.Verify(f => f.Calculate(It.IsAny<PenaltyContext>()), Times.Never());
             _percentage.Verify(p => p.Calculate(It.IsAny<PenaltyContext>()), Times.Never());

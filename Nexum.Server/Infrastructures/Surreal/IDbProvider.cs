@@ -13,8 +13,10 @@ namespace Nexum.Server.Infrastructures.Surreal
         Task<IEnumerable<TSurrealModel>> List(CancellationToken cancellationToken = default);
         Task<TSurrealModel?> Get(string id, CancellationToken cancellationToken = default);
         Task<TSurrealModel?> Get(RecordId id, CancellationToken cancellationToken = default);
-        Task<TSurrealModel> Create(TSurrealModel data, CancellationToken cancellationToken = default);
-        Task<TSurrealModel> Upsert(TSurrealModel data, CancellationToken cancellationToken = default);
+        Task<TSurrealModel> Create(string id, TSurrealModel data, CancellationToken cancellationToken = default);
+        Task Delete(string id, CancellationToken cancellationToken = default);
+        Task Delete(RecordId id, CancellationToken cancellationToken = default);
+        Task<TSurrealModel> Upsert(string id, TSurrealModel data, CancellationToken cancellationToken = default);
         Task<TSurrealModel> Update(string id, Dictionary<string, object?> data, CancellationToken cancellationToken = default);
         Task<TSurrealModel> Update(RecordId id, Dictionary<string, object?> data, CancellationToken cancellationToken = default);
 

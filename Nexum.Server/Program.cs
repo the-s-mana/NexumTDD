@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Mapster;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Nexum.Server.DAC;
 using Nexum.Server.Infrastructures.Surreal;
@@ -49,13 +50,13 @@ builder.Services.AddScoped<IPercentagePenalty, PercentagePenalty>();
 builder.Services.AddScoped<IPenaltyPolicies, PenaltyPolicies>();
 builder.Services.AddScoped<IFixedPenalty, FixedPenalty>();
 
-var app = builder.Build();
+builder.Services.AddScoped<IIssuersDAC, IssuersDAC>();
+builder.Services.AddScoped<IPenaltyPoliciesDAC, PenaltyPoliciesDAC>();
+builder.Services.AddScoped<IPenalty, Penalty>();
 
-//// (ทางเลือก) ทริกเกอร์ Factory ให้ SignIn ตั้งแต่สตาร์ทแอป
-//using (var scope = app.Services.CreateScope())
-//{
-//    _ = scope.ServiceProvider.GetRequiredService<SurrealDbProviderFactoryBase>();
-//}
+TypeAdapterConfig.GlobalSettings.Scan(AppDomain.CurrentDomain.GetAssemblies());
+
+var app = builder.Build();
 
 // ---------- Pipeline ----------
 if (app.Environment.IsDevelopment())

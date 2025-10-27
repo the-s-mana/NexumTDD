@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using Mapster;
 using SurrealDb.Net;
@@ -12,13 +13,20 @@ namespace Nexum.Server.Infrastructures.Surreal
         where TDomainModel : class
     {
         private readonly ISurrealDbClient surrealDbClient;
+        public string Table { get; }
 
         public DbProvider(ISurrealDbClient surrealDbClient)
         {
             this.surrealDbClient = surrealDbClient;
-        }
 
-        public string Table => "penalty_policies";
+            Table = typeof(TSurrealModel)
+                .GetCustomAttributes(typeof(SurrealTableAttribute), false)
+                .Cast<SurrealTableAttribute>()
+                .FirstOrDefault()
+                ?.Name
+                ?? throw new InvalidOperationException(
+                    $"SurrealTableAttribute not found on {typeof(TSurrealModel).Name}");
+        }
 
         // ===== CRUD (Surreal) =====
 
@@ -38,19 +46,32 @@ namespace Nexum.Server.Infrastructures.Surreal
             return await surrealDbClient.Select<TSurrealModel>(id, cancellationToken);
         }
 
-        public async Task<TSurrealModel> Create(TSurrealModel data, CancellationToken cancellationToken = default)
+        public async Task<TSurrealModel> Create(string id, TSurrealModel data, CancellationToken cancellationToken = default)
         {
-            return await surrealDbClient.Create(Table, data, cancellationToken);
+            data.Id = RecordId.From(Table, int.Parse(id));
+            return await surrealDbClient.Create(data, cancellationToken);
         }
 
-        public async Task<TSurrealModel> Upsert(TSurrealModel data, CancellationToken cancellationToken = default)
+        public async Task Delete(string id, CancellationToken cancellationToken = default)
         {
+            var rid = RecordId.From(Table, int.Parse(id));
+            await surrealDbClient.Delete(rid, cancellationToken);
+        }
+
+        public async Task Delete(RecordId id, CancellationToken cancellationToken = default)
+        {
+            await surrealDbClient.Delete(id, cancellationToken);
+        }
+
+        public async Task<TSurrealModel> Upsert(string id, TSurrealModel data, CancellationToken cancellationToken = default)
+        {
+            data.Id = RecordId.From(Table, int.Parse(id));
             return await surrealDbClient.Upsert(data, cancellationToken);
         }
 
         public async Task<TSurrealModel> Update(string id, Dictionary<string, object?> data, CancellationToken cancellationToken = default)
         {
-            var thing = RecordId.From(Table, id);
+            var thing = RecordId.From(Table, int.Parse(id));
             return await surrealDbClient.Merge<TSurrealModel>(thing, data, cancellationToken);
         }
 

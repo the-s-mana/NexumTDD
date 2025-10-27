@@ -1,8 +1,11 @@
 ﻿using System.Text.Json.Serialization;
 using Mapster;
+using Nexum.Server.API.Dto;
+using Nexum.Server.Infrastructures.Surreal;
 using SurrealDb.Net.Models;
 namespace Nexum.Server.Models.Penalty.Surreal
 {
+    [SurrealTable("penalty_policies")]
     public class PenaltyPolicyRecord : Record
     {
         public int PenaltyPolicyID { get; set; }
@@ -14,16 +17,16 @@ namespace Nexum.Server.Models.Penalty.Surreal
         public double TotalCap { get; set; }
         public int PenaltyFreePeriodDays { get; set; }
         public double MinimumPaymentRate { get; set; }
+    }
+    
+    public sealed class PenaltyPolicyMapping : IRegister
+    {
+        public void Register(TypeAdapterConfig config)
+        {
+            config.NewConfig<PenaltyPolicyRequestDTO, PenaltyPolicyRecord>();
 
-        //TODO : Mapster Config
-        //public static void MapsterConfig()
-        //{
-        //    TypeAdapterConfig<PenaltyPolicyRecord, ManaDb.UserInfo>.NewConfig()
-        //        .Map(m => m.Id, s => s.Id == null ? null : s.Id.GetId());
-
-        //    TypeAdapterConfig<ManaDb.UserInfo, UserInfo>.NewConfig()
-        //        .Ignore(s => s.Id)
-        //        .AfterMapping((m, s) => s.Id = string.IsNullOrWhiteSpace(m.Id) ? null : RecordId.From(nameof(UserInfo), m.Id));
-        //}
+            config.NewConfig<PenaltyPolicyRecord, PenaltyPolicyResponseDTO>()
+                .Map(d => d.PenaltyPolicyID, s => s.PenaltyPolicyID);
+        }
     }
 }
