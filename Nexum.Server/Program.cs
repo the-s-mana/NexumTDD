@@ -1,5 +1,6 @@
 ﻿using Mapster;
 using MapsterMapper;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Nexum.Server.DAC;
 using Nexum.Server.Data;
 using Nexum.Server.Data.Models;
@@ -10,14 +11,22 @@ using Nexum.Server.Models.Interest;
 using Nexum.Server.Services;
 using Nexum.Server.Services.Penalty;
 using Nexum.Server.Utils;
-using SurrealDb.Net;
 using System.Reflection;
 using static Nexum.Server.Data.IDbProviderFactory;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. เพิ่ม Service ของ App Insights
+builder.Services.AddApplicationInsightsTelemetry(builder.Configuration);
 
+// 2. (สำคัญ!) ปิด Sampling เพื่อให้ Log Fraud เข้า 100%
+builder.Services.Configure<ApplicationInsightsServiceOptions>(options =>
+{
+    options.EnableAdaptiveSampling = false;
+    options.EnableEventCounterCollectionModule = false;
+});
+
+// Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
